@@ -44,7 +44,8 @@ systemctl restart fiannafit
 
 echo "==> Health check"
 for _ in $(seq 10); do
-  if curl -fsS http://127.0.0.1:8000/healthz; then
+  # -s without -S: no "connection refused" noise while uvicorn is starting
+  if curl -fs http://127.0.0.1:8000/healthz; then
     echo
     echo "==> Deploy OK"
     exit 0
