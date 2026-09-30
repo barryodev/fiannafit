@@ -24,3 +24,9 @@ def hello(request: Request):
     return templates.TemplateResponse(
         request, "_hello.html", {"now": datetime.now(UTC).strftime("%H:%M:%S")}
     )
+
+
+@app.get("/healthz")
+def healthz():
+    # Liveness check used by ops/deploy.sh after a restart
+    return {"status": "ok"}

@@ -1,0 +1,22 @@
+# systemd unit for the Fianna Fit app. provision.sh installs it to
+# /etc/systemd/system/fiannafit.service; edit it here, never on the VM.
+[Unit]
+Description=Fianna Fit (uvicorn)
+After=network.target
+
+[Service]
+User=fiannafit
+Group=fiannafit
+WorkingDirectory=/opt/fiannafit
+# Secrets (SESSION_SECRET_KEY, ...). Created by hand, never committed.
+# No leading "-", so the service refuses to start if the file is missing.
+EnvironmentFile=/etc/fiannafit/env
+# Run the venv's uvicorn directly, not `uv run`, so starting the service
+# never changes the environment. deploy.sh runs `uv sync --frozen` first.
+# Bound to localhost only: Caddy is the public entry point (DAI-7).
+ExecStart=/opt/fiannafit/.venv/bin/uvicorn fiannafit.main:app --host 127.0.0.1 --port 8000
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
