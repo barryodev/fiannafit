@@ -22,3 +22,9 @@ def test_hello_returns_fragment():
 def test_htmx_is_served():
     response = client.get("/static/htmx-2.0.11.min.js")
     assert response.status_code == 200
+
+
+def test_healthz_returns_ok():
+    response = client.get("/healthz")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
