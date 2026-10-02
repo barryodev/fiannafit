@@ -173,9 +173,12 @@ Each VM gets its own key. Never copy production's key to the local VM.
 Copy the `ops/` folder from your checkout to the VM, then run `provision.sh` there as root:
 
 ```sh
+ssh ubuntu@<vm-ip> rm -rf fiannafit-ops
 scp -r ops ubuntu@<vm-ip>:fiannafit-ops
 ssh ubuntu@<vm-ip> sudo ./fiannafit-ops/provision.sh
 ```
+
+The first line removes any copy left over from a previous run. Without it, `scp -r` would put the new copy *inside* the old one (`fiannafit-ops/ops/`, the same way `cp -r` does) and the old `provision.sh` would run.
 
 This runs your local version of `ops/`, including uncommitted changes, so you can try changes on the local VM before merging. The app code is always cloned from `main` on GitHub.
 
