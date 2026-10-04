@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Server setup for Fianna Fit. Safe to re-run: every step checks before it
-# changes anything. Run on the VM as root, from a copy of the ops/ folder
-# (see ops/README.md, step D2):
+# App setup for Fianna Fit. Host-level setup (system updates, Caddy, firewall,
+# SSH) is in host/provision-host.sh, which must run first. Safe to re-run:
+# every step checks before it changes anything. Run on the VM as root, from a
+# copy of the ops/ folder (see ops/README.md, step D2):
 #
 #   sudo ./fiannafit-ops/provision.sh
 #
@@ -16,6 +17,7 @@ REPO_URL=https://github.com/barryodev/fiannafit.git
 ENV_FILE=/etc/fiannafit/env
 UV_VERSION=0.12.20              # keep in step with the uv used for development
 UV="$APP_HOME/.local/bin/uv"
+CADDY_SITES=/etc/caddy/sites     # created by host/provision-host.sh
 
 OPS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -35,11 +37,13 @@ if [[ $(stat -c '%U %a' "$ENV_FILE") != "root 600" ]]; then
   sudo chown root:root $ENV_FILE && sudo chmod 600 $ENV_FILE"
 fi
 
+command -v caddy >/dev/null && [[ -d $CADDY_SITES ]] \
+  || die "Caddy isn't set up. Run host/provision-host.sh first (ops/README.md, step D2)."
+
 # --- System packages --------------------------------------------------------
-log "Applying system updates and installing base packages"
+log "Installing app packages"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -q
-apt-get upgrade -y -q -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold
 apt-get install -y -q git curl
 
 # --- App user ---------------------------------------------------------------
@@ -76,5 +80,19 @@ log "Installing fiannafit.service"
 install -m 0644 "$OPS_DIR/fiannafit.service" /etc/systemd/system/fiannafit.service
 systemctl daemon-reload
 systemctl enable fiannafit
+
+# --- Caddy site -------------------------------------------------------------
+# Only this app's own site file. The main Caddyfile belongs to the host.
+if ! out=$(caddy validate --adapter caddyfile --config "$OPS_DIR/fiannafit.caddy" 2>&1); then
+  echo "$out" >&2
+  die "Caddy rejected ops/fiannafit.caddy, so it wasn't installed."
+fi
+if cmp -s "$OPS_DIR/fiannafit.caddy" "$CADDY_SITES/fiannafit.caddy"; then
+  log "Caddy site already installed"
+else
+  log "Installing Caddy site, reloading Caddy"
+  install -m 0644 "$OPS_DIR/fiannafit.caddy" "$CADDY_SITES/fiannafit.caddy"
+  systemctl reload caddy
+fi
 
 log "Done. Start or restart the app with deploy.sh (or: sudo systemctl restart fiannafit)"

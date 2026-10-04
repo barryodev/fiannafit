@@ -1,0 +1,6 @@
+# Main Caddyfile for the host, shared by every app on it. provision-host.sh
+# installs it to /etc/caddy/Caddyfile; edit it here, never on the VM.
+#
+# Each app installs its own site file into /etc/caddy/sites/ (Fianna Fit's
+# is ops/fiannafit.caddy) and never edits this one.
+import /etc/caddy/sites/*.caddy
