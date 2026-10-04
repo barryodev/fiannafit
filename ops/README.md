@@ -21,15 +21,15 @@ Design decisions behind this setup are in Linear (project "Fianna Fit", issues D
 
 ## Server facts
 
-These aren't secret (DNS publishes the production IP anyway), but they are specific to this host. Keep them here, not in code.
+These aren't secret, but they are specific to this host. Keep them here, not in code. IP addresses live only in the gitignored `ops/targets.env`.
 
 | | Production (OCI) | Local test VM |
 | --- | --- | --- |
-| Region / AD that worked | *(TODO)* | n/a |
-| Name | `fiannafit` | `fiannafit-local` |
+| Region / AD that worked | `eu-paris-1` / AD-1 | n/a |
+| Name | `barryodev-1` | `fiannafit-local` |
 | Shape | `VM.Standard.A1.Flex` (ARM64), 1 OCPU / 6 GB | Multipass, x86_64, 1 CPU / 6 GB / 20 GB disk |
-| Ubuntu release | *(TODO: exact image name)* | same release as production |
-| IP | *(TODO)* | changes on rebuild, see `multipass list` |
+| Ubuntu release | `Canonical-Ubuntu-26.04-aarch64-2026.08.17-0` | same release as production (26.04) |
+| IP | `PROD` in `ops/targets.env`, or the instance details page in the OCI console | `LOCAL` in `ops/targets.env`; changes on rebuild, see `multipass list` |
 | SSH user | `ubuntu` | `ubuntu` |
 
 ---
@@ -63,7 +63,7 @@ To check: **Billing & Cost Management → Upgrade and Manage Payment**. On a bra
 
 1. Make sure the region selector (top right) shows your **home region**. Always Free compute can only be created there.
 2. **Networking → Virtual cloud networks → Actions → Start VCN Wizard → "Create VCN with Internet Connectivity"**.
-3. Name: `fiannafit-vcn`. Leave the default CIDRs.
+3. Name: `barryodev-vcn`. Leave the default CIDRs.
 4. Create it. The wizard makes a public subnet, a private subnet, an internet gateway, a NAT gateway and route tables.
 
 The default security list on the public subnet allows inbound SSH (22) from anywhere, plus some ICMP. That's all this step needs. Opening 80/443 is DAI-7's job.
@@ -71,13 +71,15 @@ The default security list on the public subnet allows inbound SSH (22) from anyw
 ### B3. Create the VM
 
 1. **Compute → Instances → Create instance**.
-2. **Name:** `fiannafit`.
-3. **Image:** Change image → **Ubuntu** → the latest **Canonical Ubuntu** LTS build (the full image, not "Minimal"). Once you pick the Ampere shape below, make sure the image variant is `aarch64`.
-4. **Shape:** Change shape → **Ampere** → `VM.Standard.A1.Flex`, **1 OCPU, 6 GB memory**. Look for the "Always Free-eligible" label. The free allowance is 4 OCPU / 24 GB in total, so this leaves headroom.
-5. **Networking:** select `fiannafit-vcn` and its **public** subnet, and make sure **Assign a public IPv4 address** is on.
-6. **SSH keys:** "Upload public key files" (or paste) and use `~/.ssh/id_ed25519.pub` from A1. Don't let OCI generate a key pair.
-7. **Boot volume:** leave the default size. It's within the 200 GB Always Free block-storage allowance.
-8. Create it.
+2. **Name:** `barryodev-1`.
+3. **Shape** (pick this before the image): Change shape → **Ampere** → `VM.Standard.A1.Flex`, **1 OCPU, 6 GB memory**. Look for the "Always Free-eligible" label. The free allowance is 4 OCPU / 24 GB in total, so this leaves headroom.
+4. **Image:** Change image → **Ubuntu** → **Canonical Ubuntu 26.04** (the full image, not "Minimal"; same release as the local VM). The full image has no separate "aarch64" entry, and its build dropdown only shows a date. To check it's the ARM build, expand it and click **View compatible shapes**: it should list only A1 shapes.
+5. **Security:** leave **Shielded instance** off. It guards against boot-level malware, isn't needed here, and once on, only the instance name can be changed.
+6. **Networking:** select `barryodev-vcn` and its **public** subnet, and make sure **Assign a public IPv4 address** is on.
+7. **SSH keys:** "Upload public key files" (or paste) and use `~/.ssh/id_ed25519.pub` from A1. Don't let OCI generate a key pair.
+8. **Boot volume:** leave the default size. It's within the 200 GB Always Free block-storage allowance.
+9. Leave everything else at its default (Oracle Cloud Agent plugins, live migration, metadata service v2). **Compute Instance Run Command** is worth keeping on: it lets you run commands from the console if SSH ever locks you out.
+10. Create it. The instance details page then shows the full image name (e.g. `Canonical-Ubuntu-26.04-aarch64-...`); record it in *Server facts*.
 
 **"Out of host capacity"?** Go back and try a different availability domain (Placement section), or retry later. Record the one that worked in *Server facts*.
 
@@ -173,9 +175,12 @@ Each VM gets its own key. Never copy production's key to the local VM.
 Copy the `ops/` folder from your checkout to the VM, then run `provision.sh` there as root:
 
 ```sh
+ssh ubuntu@<vm-ip> rm -rf fiannafit-ops
 scp -r ops ubuntu@<vm-ip>:fiannafit-ops
 ssh ubuntu@<vm-ip> sudo ./fiannafit-ops/provision.sh
 ```
+
+The first line removes any copy left over from a previous run. Without it, `scp -r` would put the new copy *inside* the old one (`fiannafit-ops/ops/`, the same way `cp -r` does) and the old `provision.sh` would run.
 
 This runs your local version of `ops/`, including uncommitted changes, so you can try changes on the local VM before merging. The app code is always cloned from `main` on GitHub.
 
