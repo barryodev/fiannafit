@@ -1,0 +1,6 @@
+// Unattended upgrades. provision-host.sh installs it to
+// /etc/apt/apt.conf.d/20auto-upgrades; edit it here, never on the VM.
+// Refresh package lists and install security updates daily. Which updates
+// count is set by Ubuntu's default 50unattended-upgrades (security only).
+APT::Periodic::Update-Package-Lists "1";
+APT::Periodic::Unattended-Upgrade "1";

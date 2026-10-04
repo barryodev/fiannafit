@@ -1,0 +1,9 @@
+# Caddy site for Fianna Fit. provision.sh installs it to
+# /etc/caddy/sites/fiannafit.caddy, where the host's main Caddyfile
+# (ops/host/Caddyfile) imports it; edit it here, never on the VM.
+#
+# Caddy gets and renews the Let's Encrypt certificate for this name and
+# redirects http:// to https:// on its own.
+fiannafit.barryodev.io {
+	reverse_proxy 127.0.0.1:8000
+}
