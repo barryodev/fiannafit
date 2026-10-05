@@ -5,3 +5,6 @@ __pycache__/
 
 # Local deploy targets (host-specific, see ops/targets.env.example)
 ops/targets.env
+
+# Local secrets (see .env.example)
+.env

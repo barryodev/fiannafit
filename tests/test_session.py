@@ -1,0 +1,116 @@
+"""Unit tests for the session model and cookie encoding (DAI-8)."""
+
+import random
+from datetime import UTC, datetime, timedelta
+
+import pytest
+from itsdangerous import URLSafeTimedSerializer
+
+from fiannafit.session import (
+    MAX_COOKIE_BYTES,
+    Session,
+    SessionFull,
+    decode,
+    encode,
+)
+
+T0 = datetime(2026, 10, 5, 18, 0, tzinfo=UTC)
+
+
+def big_workout(exercises=12, sets=5) -> Session:
+    session = Session()
+    for e in range(exercises):
+        for s in range(sets):
+            session.log_set(
+                f"Exercise number {e}",
+                8,
+                60 + 2.5 * s,
+                now=T0 + timedelta(minutes=e * 5 + s),
+            )
+    return session
+
+
+def test_round_trip():
+    session = Session()
+    session.log_set("Back Squat", 5, 100, now=T0)
+    session.log_set("Pull-up", 10, None, now=T0 + timedelta(minutes=3))
+    assert decode(encode(session)) == session
+
+
+def test_first_set_starts_workout():
+    session = Session()
+    session.log_set("Back Squat", 5, 100, now=T0)
+    assert session.workout.started_at == T0
+    assert session.workout.exercises[0].sets[0].weight_kg == 100
+
+
+def test_sets_join_existing_exercise_ignoring_case_and_spacing():
+    session = Session()
+    session.log_set("Bench Press", 8, 60, now=T0)
+    session.log_set("  bench   press ", 8, 60, now=T0)
+    [exercise] = session.workout.exercises
+    assert exercise.name == "Bench Press"
+    assert len(exercise.sets) == 2
+
+
+def test_empty_exercise_name_rejected():
+    with pytest.raises(ValueError):
+        Session().log_set("   ", 5)
+
+
+def test_tampered_signature_is_invalid():
+    token = encode(big_workout(1, 1))
+    tampered = token[:-1] + ("A" if token[-1] != "A" else "B")
+    assert decode(tampered) is None
+
+
+def test_garbage_is_invalid():
+    assert decode("not-a-cookie") is None
+
+
+def test_wrong_key_is_invalid():
+    other = URLSafeTimedSerializer("some-other-key", salt="fiannafit.session")
+    assert decode(other.dumps(Session().model_dump(mode="json"))) is None
+
+
+def test_unknown_version_is_invalid():
+    token = encode(Session())
+    data = decode(token).model_dump(mode="json") | {"v": 2}
+    serializer = URLSafeTimedSerializer("test-only-key", salt="fiannafit.session")
+    assert decode(serializer.dumps(data)) is None
+
+
+def test_big_workout_is_well_under_the_size_guard():
+    assert len(encode(big_workout(12, 5))) < MAX_COOKIE_BYTES / 2
+
+
+def test_size_guard_refuses_oversized_session():
+    session = Session()
+    # Random names barely compress, so this passes the limit quickly
+    rng = random.Random(0)
+    for _ in range(200):
+        session.log_set(f"{rng.getrandbits(128):x}", 5, now=T0)
+    with pytest.raises(SessionFull):
+        encode(session)
+
+
+def test_recent_exercises_most_recent_first_without_duplicates():
+    session = Session()
+    for name in ["Squat", "Bench", "squat", "Row"]:
+        session.log_set(name, 5, now=T0)
+    assert session.recent_exercises == ["Row", "Squat", "Bench"]
+
+
+def test_recent_exercises_limited_to_ten():
+    session = Session()
+    for i in range(15):
+        session.log_set(f"Exercise {i}", 5, now=T0)
+    assert session.recent_exercises == [f"Exercise {i}" for i in range(14, 4, -1)]
+
+
+def test_new_workout_keeps_recent_exercises():
+    session = Session()
+    session.log_set("Squat", 5, now=T0)
+    session.new_workout()
+    assert session.workout is None
+    assert session.recent_exercises == ["Squat"]
