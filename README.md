@@ -14,6 +14,17 @@ The app refuses to start without `SESSION_SECRET_KEY`, which signs the workout c
 Until the logging UI exists (DAI-11), the temporary `/debug/...` routes can be tried from
 http://localhost:8000/docs (localhost, so the browser keeps the Secure cookie over http).
 
+## Try it on your phone
+
+```sh
+ops/local-phone-test.sh
+```
+
+Serves the app over HTTPS on your home network and prints the address to open on the
+phone (same Wi-Fi). The workout cookie is Secure, so it needs HTTPS; the script makes a
+self-signed certificate on first run, kept in `~/.local/share/fiannafit-dev/`, outside the
+repo. The phone warns about it once per address: tap through to continue.
+
 ## Test
 
 ```sh
