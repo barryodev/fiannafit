@@ -1,5 +1,4 @@
 from contextlib import asynccontextmanager
-from datetime import UTC, datetime
 from pathlib import Path
 
 from fastapi import FastAPI, Query, Request
@@ -8,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from fiannafit import session as workout_session
+from fiannafit.display import TZ_COOKIE, clock, format_set, parse_timezone
 from fiannafit.session import SessionFull, load_session, save_session
 
 BASE_DIR = Path(__file__).parent
@@ -23,18 +23,20 @@ app = FastAPI(lifespan=lifespan)
 app.middleware("http")(workout_session.clear_invalid_session_cookie)
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
+templates.env.filters["set_text"] = format_set
+templates.env.filters["clock"] = clock
 
 
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request):
-    return templates.TemplateResponse(request, "index.html")
-
-
-@app.get("/hello", response_class=HTMLResponse)
-def hello(request: Request):
-    # HTML fragment that HTMX swaps into the page
+    session = load_session(request)
     return templates.TemplateResponse(
-        request, "_hello.html", {"now": datetime.now(UTC).strftime("%H:%M:%S")}
+        request,
+        "index.html",
+        {
+            "workout": session.workout,
+            "tz": parse_timezone(request.cookies.get(TZ_COOKIE)),
+        },
     )
 
 

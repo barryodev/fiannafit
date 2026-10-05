@@ -1,0 +1,18 @@
+{% if workout %}
+<p class="note">
+  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 17h2v-6h-2v6Zm1-8a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm0 13a10 10 0 1 1 0-20 10 10 0 0 1 0 20Zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z"/></svg>
+  Nothing is saved on our side. Share this workout to keep it.
+</p>
+{% for exercise in workout.exercises %}
+<section class="card">
+  <h2>{{ exercise.name }}</h2>
+  <p class="sets">
+    {%- for logged_set in exercise.sets -%}
+    <span class="set">{{ logged_set | set_text }}</span>{% if not loop.last %} · {% endif %}
+    {%- endfor -%}
+  </p>
+</section>
+{% endfor %}
+{% else %}
+<p class="empty">No workout yet. Log your first set to start.</p>
+{% endif %}

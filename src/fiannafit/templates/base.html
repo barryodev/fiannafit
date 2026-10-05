@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#211D1A">
+  <title>Fianna Fit</title>
+  <link rel="stylesheet" href="/static/css/app.css">
+  <script>
+    // The server runs in UTC; this tells it the phone's time zone for clock times.
+    document.cookie = "tz=" + Intl.DateTimeFormat().resolvedOptions().timeZone
+      + "; path=/; max-age=31536000; samesite=lax; secure";
+  </script>
+  <script src="/static/htmx-2.0.11.min.js"></script>
+</head>
+<body>
+{% block body %}{% endblock %}
+</body>
+</html>
