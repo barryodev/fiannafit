@@ -10,6 +10,7 @@ from fiannafit.session import (
     MAX_COOKIE_BYTES,
     Session,
     SessionFull,
+    WorkoutFinished,
     decode,
     encode,
 )
@@ -114,3 +115,98 @@ def test_new_workout_keeps_recent_exercises():
     session.new_workout()
     assert session.workout is None
     assert session.recent_exercises == ["Squat"]
+
+
+def test_delete_last_set_removes_the_latest_across_exercises():
+    session = Session()
+    session.log_set("Squat", 5, 100, now=T0)
+    session.log_set("Bench", 8, 60, now=T0 + timedelta(minutes=5))
+    session.log_set("Squat", 5, 105, now=T0 + timedelta(minutes=10))
+    session.log_set("Bench", 8, 62.5, now=T0 + timedelta(minutes=15))
+
+    assert session.delete_last_set().weight_kg == 62.5
+    assert session.delete_last_set().weight_kg == 105
+    squat, bench = session.workout.exercises
+    assert [s.weight_kg for s in squat.sets] == [100]
+    assert [s.weight_kg for s in bench.sets] == [60]
+
+
+def test_delete_last_set_removes_an_emptied_exercise():
+    session = Session()
+    session.log_set("Squat", 5, 100, now=T0)
+    session.log_set("Bench", 8, 60, now=T0 + timedelta(minutes=5))
+    session.delete_last_set()
+    assert [e.name for e in session.workout.exercises] == ["Squat"]
+
+
+def test_deleting_the_only_set_unstarts_the_workout():
+    session = Session()
+    session.log_set("Squat", 5, 100, now=T0)
+    session.delete_last_set()
+    assert session.workout is None
+    assert session.recent_exercises == ["Squat"]
+
+
+def test_delete_last_set_with_no_workout_does_nothing():
+    session = Session()
+    assert session.delete_last_set() is None
+    assert session.workout is None
+
+
+def test_finish_sets_end_time_once():
+    session = Session()
+    session.log_set("Squat", 5, 100, now=T0)
+    session.finish(now=T0 + timedelta(minutes=60))
+    session.finish(now=T0 + timedelta(minutes=90))  # a double tap
+    assert session.workout.ended_at == T0 + timedelta(minutes=60)
+
+
+def test_finish_without_a_workout_is_rejected():
+    with pytest.raises(ValueError):
+        Session().finish()
+
+
+def test_finished_workout_is_read_only():
+    session = Session()
+    session.log_set("Squat", 5, 100, now=T0)
+    session.finish(now=T0 + timedelta(minutes=60))
+    with pytest.raises(WorkoutFinished):
+        session.log_set("Squat", 5, 100)
+    with pytest.raises(WorkoutFinished):
+        session.delete_last_set()
+    assert len(session.workout.exercises[0].sets) == 1
+
+
+def test_new_workout_after_finish_can_log_again():
+    session = Session()
+    session.log_set("Squat", 5, 100, now=T0)
+    session.finish(now=T0 + timedelta(minutes=60))
+    session.new_workout()
+    session.log_set("Squat", 5, 100, now=T0 + timedelta(days=2))
+    assert session.workout.started_at == T0 + timedelta(days=2)
+
+
+def test_last_set_of_ignores_case_and_spacing():
+    session = Session()
+    session.log_set("Bench Press", 8, 60, now=T0)
+    session.log_set("Bench Press", 6, 62.5, now=T0 + timedelta(minutes=3))
+    last = session.last_set_of("  bench  PRESS ")
+    assert (last.reps, last.weight_kg) == (6, 62.5)
+
+
+def test_last_set_of_unknown_exercise_is_none():
+    session = Session()
+    assert session.last_set_of("Squat") is None  # no workout yet
+    session.log_set("Bench", 8, 60, now=T0)
+    assert session.last_set_of("Squat") is None
+
+
+def test_current_exercise_follows_the_latest_set():
+    session = Session()
+    assert session.current_exercise() is None
+    session.log_set("Squat", 5, 100, now=T0)
+    session.log_set("Bench", 8, 60, now=T0 + timedelta(minutes=5))
+    session.log_set("squat", 5, 100, now=T0 + timedelta(minutes=10))
+    assert session.current_exercise() == "Squat"
+    session.delete_last_set()
+    assert session.current_exercise() == "Bench"
