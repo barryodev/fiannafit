@@ -61,7 +61,10 @@ def test_empty_exercise_name_rejected():
 
 def test_tampered_signature_is_invalid():
     token = encode(big_workout(1, 1))
-    tampered = token[:-1] + ("A" if token[-1] != "A" else "B")
+    # Change the signature's first character. Not the last: in base64 its low
+    # bits are padding, so some swaps decode to the same, still valid, bytes.
+    i = token.rindex(".") + 1
+    tampered = token[:i] + ("A" if token[i] != "A" else "B") + token[i + 1 :]
     assert decode(tampered) is None
 
 
