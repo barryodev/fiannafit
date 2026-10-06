@@ -413,7 +413,7 @@ p {
    panel's size or moves anything. A long message grows upwards. */
 .error-pill {
   position: absolute;
-  bottom: calc(100% + 20px);
+  bottom: calc(100% + 1px + 20px); /* 100% stops inside the panel's top border */
   left: var(--page-gutter);
   right: var(--page-gutter);
   display: flex;

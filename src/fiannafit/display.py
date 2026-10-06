@@ -10,7 +10,12 @@ TZ_COOKIE = "tz"
 
 
 def parse_timezone(name: str | None) -> tzinfo:
-    """The browser's time zone, or UTC if it's missing or not a real zone."""
+    """The browser's time zone, or UTC if it's missing or not a real zone.
+
+    Chrome still sends some old names (Asia/Calcutta, Europe/Kiev). Ubuntu's
+    tzdata dropped them, so the tzdata package is a dependency: ZoneInfo falls
+    back to it for names the system doesn't have.
+    """
     if name:
         try:
             return ZoneInfo(name)
