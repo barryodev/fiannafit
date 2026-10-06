@@ -152,6 +152,11 @@ p {
   padding: 0 var(--page-gutter) 16px;
 }
 
+/* Just a wrapper that responses swap by id; the cards lay out as if it weren't there */
+.workout-list {
+  display: contents;
+}
+
 .note {
   display: flex;
   align-items: center;
@@ -228,6 +233,11 @@ p {
 
 .field input::placeholder {
   color: var(--md-sys-color-outline);
+}
+
+.field.invalid input {
+  border: 2px solid var(--md-sys-color-error);
+  padding: 0 11px;
 }
 
 .field input:focus {
@@ -314,35 +324,4 @@ p {
   background: var(--md-sys-color-error);
   color: var(--md-sys-color-on-error);
   font-weight: 500;
-}
-
-/* --- Temporary colour check (DAI-11 step 2, removed in step 6) ------------ */
-
-.swatches {
-  display: grid;
-  gap: 12px;
-  margin-top: 24px;
-}
-
-.swatches h2 {
-  font-size: 1rem;
-  font-weight: 500;
-}
-
-.swatch-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-  gap: 8px;
-}
-
-.swatch {
-  padding: 12px;
-  border-radius: var(--md-sys-shape-corner-medium);
-  font-size: 0.875rem;
-}
-
-.swatch-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
 }

@@ -1,0 +1,9 @@
+{# What POST /sets returns: the form, plus (after a set is logged) the
+   cards and the start time, swapped in by id. #}
+{% include "_log_form.html" %}
+{% if logged %}
+{% with oob = true %}
+{% include "_workout.html" %}
+{% include "_workout_time.html" %}
+{% endwith %}
+{% endif %}

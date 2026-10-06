@@ -1,14 +1,22 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Annotated
 
-from fastapi import FastAPI, Query, Request
+from fastapi import FastAPI, Form, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from fiannafit import session as workout_session
 from fiannafit.display import TZ_COOKIE, clock, format_set, parse_timezone
-from fiannafit.session import SessionFull, load_session, save_session
+from fiannafit.forms import FormValues, InvalidSet, parse_set, prefill, suggestions
+from fiannafit.session import (
+    Session,
+    SessionFull,
+    WorkoutFinished,
+    load_session,
+    save_session,
+)
 
 BASE_DIR = Path(__file__).parent
 
@@ -27,16 +35,69 @@ templates.env.filters["set_text"] = format_set
 templates.env.filters["clock"] = clock
 
 
+def screen_context(
+    request: Request,
+    session: Session,
+    form: FormValues | None = None,
+    error: InvalidSet | None = None,
+) -> dict:
+    """What the templates need to draw the screen, or any part of it."""
+    return {
+        "workout": session.workout,
+        "tz": parse_timezone(request.cookies.get(TZ_COOKIE)),
+        "current_exercise": session.current_exercise(),
+        "suggestions": suggestions(session),
+        "form": form or prefill(session),
+        "error": error,
+    }
+
+
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request):
     session = load_session(request)
     return templates.TemplateResponse(
+        request, "index.html", screen_context(request, session)
+    )
+
+
+@app.post("/sets", response_class=HTMLResponse)
+def log_set(
+    request: Request,
+    exercise: Annotated[str, Form()] = "",
+    reps: Annotated[str, Form()] = "",
+    kg: Annotated[str, Form()] = "",
+):
+    """Log a set from the form. Fields are plain text and checked by parse_set,
+    so every problem comes back as the same red pill, not FastAPI's JSON."""
+    typed = FormValues(exercise, reps, kg)
+    session = load_session(request)
+    try:
+        entry = parse_set(typed)
+        session.log_set(entry.exercise, entry.reps, entry.weight_kg)
+        response = templates.TemplateResponse(
+            request,
+            "_log_response.html",
+            screen_context(request, session) | {"logged": True},
+        )
+        save_session(request, response, session)
+        return response
+    except InvalidSet as e:
+        error = e
+    except WorkoutFinished:
+        error = InvalidSet(
+            "This workout is finished. Start a new workout to log more sets.", ""
+        )
+    except SessionFull:
+        error = InvalidSet(
+            "This workout is too big to store any more sets. Share it to keep it.", ""
+        )
+    # Nothing was saved: redraw the form from the stored session, keeping what
+    # was typed so it doesn't have to be entered again.
+    return templates.TemplateResponse(
         request,
-        "index.html",
-        {
-            "workout": session.workout,
-            "tz": parse_timezone(request.cookies.get(TZ_COOKIE)),
-        },
+        "_log_response.html",
+        screen_context(request, load_session(request), typed, error),
+        status_code=422,
     )
 
 

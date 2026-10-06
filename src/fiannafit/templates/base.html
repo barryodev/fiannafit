@@ -12,7 +12,10 @@
     document.cookie = "tz=" + Intl.DateTimeFormat().resolvedOptions().timeZone
       + "; path=/; max-age=31536000; samesite=lax; secure";
   </script>
+  {# HTMX's default responseHandling, plus swapping in 422 so validation errors show #}
+  <meta name="htmx-config" content='{"responseHandling": [{"code": "204", "swap": false}, {"code": "[23]..", "swap": true}, {"code": "422", "swap": true}, {"code": "[45]..", "swap": false, "error": true}, {"code": "...", "swap": false}]}'>
   <script src="/static/htmx-2.0.11.min.js"></script>
+  <script src="/static/app.js" defer></script>
 </head>
 <body>
 {% block body %}{% endblock %}

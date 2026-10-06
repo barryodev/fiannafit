@@ -4,44 +4,14 @@
 <div class="scroll">
 <header class="top-bar">
   <h1>Fianna Fit</h1>
-  {% if workout %}
-  <span class="workout-time">
-    {%- if workout.ended_at -%}
-      {{ workout.started_at | clock(tz) }}–{{ workout.ended_at | clock(tz) }}
-    {%- else -%}
-      started {{ workout.started_at | clock(tz) }}
-    {%- endif -%}
-  </span>
-  {% endif %}
+  {% include "_workout_time.html" %}
 </header>
 
 <main class="workout">
   {% include "_workout.html" %}
-  {% include "_swatches.html" %}
 </main>
 </div>
 
-{# Placeholder: step 3 turns this into the real HTMX logging form. #}
-<footer class="log-panel">
-  <div class="fields">
-    <label class="field field-wide">
-      <span>Exercise</span>
-      <input type="text" placeholder="e.g. Back Squat">
-    </label>
-    <label class="field">
-      <span>Reps</span>
-      <input type="text" inputmode="numeric">
-    </label>
-    <label class="field">
-      <span>kg</span>
-      <input type="text" inputmode="decimal" placeholder="bodyweight">
-    </label>
-  </div>
-  <button type="button" class="btn btn-filled btn-block">Log Set</button>
-  <div class="actions">
-    <button type="button" class="btn btn-outlined">Undo Last Set</button>
-    <button type="button" class="btn btn-tonal">Finish</button>
-  </div>
-</footer>
+{% include "_log_form.html" %}
 </div>
 {% endblock %}

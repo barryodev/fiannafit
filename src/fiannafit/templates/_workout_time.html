@@ -1,0 +1,8 @@
+{# Always rendered, even empty, so a response can swap it in by id. #}
+<span id="workout-time" class="workout-time"{% if oob %} hx-swap-oob="true"{% endif %}>
+  {%- if workout and workout.ended_at -%}
+    {{ workout.started_at | clock(tz) }}–{{ workout.ended_at | clock(tz) }}
+  {%- elif workout -%}
+    started {{ workout.started_at | clock(tz) }}
+  {%- endif -%}
+</span>
