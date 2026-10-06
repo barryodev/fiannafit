@@ -18,7 +18,11 @@
     {% set invalid = error.field if error else none %}
     <label class="field field-wide{% if invalid == 'exercise' %} invalid{% endif %}">
       <span>Exercise</span>
+      {# Picking or typing a name with sets in this workout re-fills reps and kg
+         from its last set. this:replace so only the latest name counts. #}
       <input type="text" name="exercise" value="{{ form.exercise }}"
+             hx-get="/log-form" hx-trigger="input changed delay:250ms"
+             hx-select-oob="#reps-field,#kg-field" hx-swap="none" hx-sync="this:replace"
              list="exercise-suggestions" placeholder="e.g. Back Squat"
              autocomplete="off" autocapitalize="words" autocorrect="off" spellcheck="false"
              {% if invalid == 'exercise' %}aria-invalid="true" aria-describedby="log-error"{% endif %}>
@@ -26,12 +30,12 @@
     <datalist id="exercise-suggestions">
       {% for name in suggestions %}<option value="{{ name }}">{% endfor %}
     </datalist>
-    <label class="field{% if invalid == 'reps' %} invalid{% endif %}">
+    <label id="reps-field" class="field{% if invalid == 'reps' %} invalid{% endif %}">
       <span>Reps</span>
       <input type="text" name="reps" value="{{ form.reps }}" inputmode="numeric" autocomplete="off"
              {% if invalid == 'reps' %}aria-invalid="true" aria-describedby="log-error"{% endif %}>
     </label>
-    <label class="field{% if invalid == 'kg' %} invalid{% endif %}">
+    <label id="kg-field" class="field{% if invalid == 'kg' %} invalid{% endif %}">
       <span>kg</span>
       <input type="text" name="kg" value="{{ form.kg }}" inputmode="decimal" autocomplete="off"
              {% if invalid == 'kg' %}aria-invalid="true" aria-describedby="log-error"{% endif %}>

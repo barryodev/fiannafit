@@ -69,12 +69,13 @@ def parse_set(values: FormValues) -> SetInput:
     return SetInput(name, int(reps), weight or None)
 
 
-def prefill(session: Session) -> FormValues:
-    """The next set is most likely a repeat of the latest one."""
-    name = session.current_exercise()
-    if name is None:
-        return FormValues()
-    last = session.last_set_of(name)
+def prefill(session: Session, name: str | None = None) -> FormValues | None:
+    """The next set is most likely a repeat of the latest one, of the given
+    exercise or else the one logged to last. None if there's no set to repeat."""
+    name = name or session.current_exercise()
+    last = session.last_set_of(name) if name else None
+    if last is None:
+        return None
     kg = "0" if last.weight_kg is None else format_weight(last.weight_kg)
     return FormValues(name, str(last.reps), kg)
 

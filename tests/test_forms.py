@@ -59,8 +59,8 @@ def test_limits_are_inclusive():
     assert parse_set(FormValues("Squat", "1", "0.25")).weight_kg == 0.25
 
 
-def test_prefill_empty_session_is_blank():
-    assert prefill(Session()) == FormValues()
+def test_prefill_empty_session_has_nothing_to_repeat():
+    assert prefill(Session()) is None
 
 
 def test_prefill_repeats_the_latest_set():
@@ -74,6 +74,28 @@ def test_prefill_shows_bodyweight_as_zero():
     session = Session()
     session.log_set("Pull-up", 12, None, now=T0)
     assert prefill(session) == FormValues("Pull-up", "12", "0")
+
+
+def test_prefill_named_exercise_repeats_its_own_last_set():
+    session = Session()
+    session.log_set("Squat", 5, 100, now=T0)
+    session.log_set("Squat", 3, 110, now=T0 + timedelta(minutes=3))
+    session.log_set("Bench", 8, 62.5, now=T0 + timedelta(minutes=5))
+    assert prefill(session, "Squat") == FormValues("Squat", "3", "110")
+
+
+def test_prefill_named_exercise_ignores_case():
+    session = Session()
+    session.log_set("Back Squat", 5, 100, now=T0)
+    assert prefill(session, "back squat") == FormValues("back squat", "5", "100")
+
+
+def test_prefill_unknown_exercise_has_nothing_to_repeat():
+    session = Session()
+    session.log_set("Deadlift", 5, 140, now=T0)
+    session.new_workout()  # in recent names, but with no sets in this workout
+    session.log_set("Squat", 5, 100, now=T0)
+    assert prefill(session, "Deadlift") is None
 
 
 def test_suggestions_workout_first_then_recent_without_repeats():

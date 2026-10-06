@@ -81,7 +81,10 @@ def test_comma_decimal_weight(client):
 def test_latest_exercise_card_is_marked_for_scrolling(client):
     log(client, "Squat", "5", "100")
     html = log(client, "Bench", "8", "60").text
-    assert re.search(r'<section class="card" id="current-exercise">\s*<h2>Bench', html)
+    card = re.search(
+        r'<section class="card" id="current-exercise">.*?</section>', html, re.DOTALL
+    )
+    assert ">Bench</button>" in card.group(0)
 
 
 @pytest.mark.parametrize(
@@ -177,3 +180,43 @@ def test_form_guards_against_double_taps(client):
 def test_page_swaps_in_validation_errors(client):
     html = client.get("/").text
     assert '{"code": "422", "swap": true}' in html
+
+
+# --- Re-filling the form for another exercise: GET /log-form ----------------
+
+
+def test_log_form_is_prefilled_from_that_exercises_last_set(client):
+    log(client, "Squat", "5", "100")
+    log(client, "Deadlift", "3", "140")
+    html = client.get("/log-form", params={"exercise": "squat"}).text
+    assert input_value(html, "reps") == "5"
+    assert input_value(html, "kg") == "100"
+
+
+def test_log_form_without_sets_to_repeat_changes_nothing(client):
+    log(client, "Squat", "5", "100")
+    r = client.get("/log-form", params={"exercise": "Deadlift"})
+    assert r.status_code == 204
+    assert r.text == ""
+
+
+def test_log_form_does_not_change_the_cookie(client):
+    log(client, "Squat", "5", "100")
+    before = client.cookies[COOKIE_NAME]
+    r = client.get("/log-form", params={"exercise": "Squat"})
+    assert COOKIE_NAME not in r.cookies
+    assert client.cookies[COOKIE_NAME] == before
+
+
+def test_typing_a_name_refills_only_reps_and_kg(client):
+    html = client.get("/").text
+    assert 'hx-select-oob="#reps-field,#kg-field"' in html
+    assert '<label id="reps-field"' in html
+    assert '<label id="kg-field"' in html
+
+
+def test_cards_fill_the_form_with_their_exercise(client):
+    log(client, "Back Squat", "5", "100")
+    html = client.get("/").text
+    assert 'hx-get="/log-form?exercise=Back%20Squat"' in html
+    assert 'hx-target="#log-panel"' in html

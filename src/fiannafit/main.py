@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import FastAPI, Form, Query, Request
+from fastapi import FastAPI, Form, Query, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -15,6 +15,7 @@ from fiannafit.session import (
     SessionFull,
     WorkoutFinished,
     load_session,
+    normalise_name,
     save_session,
 )
 
@@ -47,7 +48,7 @@ def screen_context(
         "tz": parse_timezone(request.cookies.get(TZ_COOKIE)),
         "current_exercise": session.current_exercise(),
         "suggestions": suggestions(session),
-        "form": form or prefill(session),
+        "form": form or prefill(session) or FormValues(),
         "error": error,
     }
 
@@ -57,6 +58,20 @@ def index(request: Request):
     session = load_session(request)
     return templates.TemplateResponse(
         request, "index.html", screen_context(request, session)
+    )
+
+
+@app.get("/log-form", response_class=HTMLResponse)
+def log_form(request: Request, exercise: str = ""):
+    """The log form pre-filled with this exercise's last set. Tapping a card
+    swaps in the whole form; typing a name swaps in just reps and kg. 204 (no
+    swap) if the exercise has no sets yet, so a new name keeps what's there."""
+    session = load_session(request)
+    form = prefill(session, normalise_name(exercise))
+    if form is None:
+        return Response(status_code=204)
+    return templates.TemplateResponse(
+        request, "_log_form.html", screen_context(request, session, form)
     )
 
 

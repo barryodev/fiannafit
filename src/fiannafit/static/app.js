@@ -10,4 +10,10 @@ function showCurrentExercise() {
 }
 
 document.addEventListener("DOMContentLoaded", showCurrentExercise);
-document.addEventListener("htmx:afterSettle", showCurrentExercise);
+// Only after logging a set. Tapping a card or typing a name also swaps in parts
+// of the form, and scrolling then would jump away from the card just tapped.
+document.addEventListener("htmx:afterSettle", (event) => {
+  if (event.detail.requestConfig?.verb === "post") {
+    showCurrentExercise();
+  }
+});
