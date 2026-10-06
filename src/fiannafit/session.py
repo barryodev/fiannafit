@@ -77,7 +77,7 @@ class Session(BaseModel):
         Returns the deleted set, or None if there was nothing to delete.
         """
         self._check_not_finished()
-        latest = self._latest()
+        latest = self.latest()
         if latest is None:
             return None
         exercise, logged_set = latest
@@ -106,8 +106,15 @@ class Session(BaseModel):
 
     def current_exercise(self) -> str | None:
         """The name of the exercise the latest set was logged under."""
-        latest = self._latest()
+        latest = self.latest()
         return latest[0].name if latest else None
+
+    def latest(self) -> tuple[Exercise, LoggedSet] | None:
+        """The most recently logged set and its exercise, the one Undo removes."""
+        if self.workout is None:
+            return None
+        candidates = [(e, e.sets[-1]) for e in self.workout.exercises if e.sets]
+        return max(candidates, key=lambda c: c[1].logged_at, default=None)
 
     def _find_exercise(self, name: str) -> Exercise | None:
         if self.workout is None:
@@ -116,12 +123,6 @@ class Session(BaseModel):
             (e for e in self.workout.exercises if e.name.casefold() == name.casefold()),
             None,
         )
-
-    def _latest(self) -> tuple[Exercise, LoggedSet] | None:
-        if self.workout is None:
-            return None
-        candidates = [(e, e.sets[-1]) for e in self.workout.exercises if e.sets]
-        return max(candidates, key=lambda c: c[1].logged_at, default=None)
 
     def _check_not_finished(self) -> None:
         if self.workout is not None and self.workout.ended_at is not None:

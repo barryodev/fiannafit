@@ -8,6 +8,20 @@
 <form id="log-panel" class="log-panel" novalidate
       hx-post="/sets" hx-target="this" hx-swap="outerHTML"
       hx-sync="this:drop" hx-disabled-elt="#log-set">
+  {# The set Undo would remove. The line keeps its height while empty, so the
+     panel doesn't grow when the first set is logged. #}
+  <div class="last-logged">
+    {% if latest %}
+    {% set exercise, logged_set = latest %}
+    <p class="last-logged-text">
+      <span class="last-logged-label">Last:</span>
+      <span class="last-logged-name">{{ exercise.name }}</span>
+      <span class="set">{{ logged_set | set_text }}</span>
+    </p>
+    {# Placeholder until step 5 #}
+    <button type="button" class="btn btn-tonal btn-small">Undo</button>
+    {% endif %}
+  </div>
   {% if error %}
   <p id="log-error" class="error-pill" role="alert">
     <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 13h2V7h-2v6Zm1 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm0 5a10 10 0 1 1 0-20 10 10 0 0 1 0 20Z"/></svg>
@@ -42,9 +56,4 @@
     </label>
   </div>
   <button id="log-set" type="submit" class="btn btn-filled btn-block">Log Set</button>
-  {# Placeholders until step 5 #}
-  <div class="actions">
-    <button type="button" class="btn btn-outlined">Undo Last Set</button>
-    <button type="button" class="btn btn-tonal">Finish</button>
-  </div>
 </form>

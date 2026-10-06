@@ -1,0 +1,20 @@
+{# Swapped in by id after a set is logged, as the first set adds the start
+   time and Finish. #}
+<header id="top-bar" class="top-bar"{% if oob %} hx-swap-oob="true"{% endif %}>
+  <div>
+    <h1>Fianna Fit</h1>
+    {% if workout %}
+    <p class="workout-time">
+      {%- if workout.ended_at -%}
+        {{ workout.started_at | clock(tz) }}–{{ workout.ended_at | clock(tz) }}
+      {%- else -%}
+        started {{ workout.started_at | clock(tz) }}
+      {%- endif -%}
+    </p>
+    {% endif %}
+  </div>
+  {% if workout %}
+  {# Placeholder until step 5 #}
+  <button type="button" class="btn btn-tonal btn-small">Finish</button>
+  {% endif %}
+</header>

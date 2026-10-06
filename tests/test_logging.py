@@ -42,13 +42,38 @@ def test_first_set_starts_the_workout_and_is_stored(client):
     assert exercise.sets[0].weight_kg == 100
 
 
-def test_response_swaps_in_cards_and_start_time(client):
+def test_response_swaps_in_cards_and_top_bar(client):
     client.cookies.set("tz", "Europe/Dublin")
     html = log(client, "Back Squat", "5", "100").text
     assert '<div id="workout" class="workout-list" hx-swap-oob="true">' in html
-    assert '<span id="workout-time" class="workout-time" hx-swap-oob="true">' in html
-    assert "started " in html
+    top_bar = re.search(
+        r'<header id="top-bar" class="top-bar" hx-swap-oob="true">.*?</header>',
+        html,
+        re.DOTALL,
+    ).group(0)
+    assert "started " in top_bar
+    assert ">Finish</button>" in top_bar
     assert "5 × 100 kg" in html
+
+
+def last_logged(html):
+    return re.search(r'<div class="last-logged">(.*?)</div>', html, re.DOTALL).group(1)
+
+
+def test_panel_shows_the_set_undo_would_remove(client):
+    log(client, "Squat", "5", "100")
+    log(client, "Bench Press", "8", "60")
+    html = log(client, "Squat", "5", "102.5").text
+    line = last_logged(html)
+    assert '<span class="last-logged-name">Squat</span>' in line
+    assert '<span class="set">5 × 102.5 kg</span>' in line
+    assert ">Undo</button>" in line
+
+
+def test_last_logged_line_stays_when_a_set_is_invalid(client):
+    log(client, "Squat", "5", "100")
+    html = log(client, "Squat", "", "100").text
+    assert '<span class="set">5 × 100 kg</span>' in last_logged(html)
 
 
 def test_response_form_is_prefilled_for_a_repeat_set(client):

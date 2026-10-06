@@ -47,6 +47,7 @@ def screen_context(
         "workout": session.workout,
         "tz": parse_timezone(request.cookies.get(TZ_COOKIE)),
         "current_exercise": session.current_exercise(),
+        "latest": session.latest(),
         "suggestions": suggestions(session),
         "form": form or prefill(session) or FormValues(),
         "error": error,

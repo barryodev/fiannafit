@@ -1,8 +1,8 @@
 <div id="workout" class="workout-list"{% if oob %} hx-swap-oob="true"{% endif %}>
 {% if workout %}
-<p class="note">
+<p class="note-card">
   <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 17h2v-6h-2v6Zm1-8a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm0 13a10 10 0 1 1 0-20 10 10 0 0 1 0 20Zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z"/></svg>
-  Nothing is saved on our side. Share this workout to keep it.
+  Only saved on this device. Share your workout to keep it.
 </p>
 {% for exercise in workout.exercises %}
 <section class="card"{% if exercise.name == current_exercise %} id="current-exercise"{% endif %}>

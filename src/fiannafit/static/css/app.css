@@ -15,8 +15,9 @@
   --carbon-black: #211d1a;
   --silver: #c0b7b0;
   --dusty-taupe: #a4826d;
-  --dusty-taupe-dark: #8f796a;
   --mauve-bark: #644336;
+  --ochre: #b08d4c;
+  --steel: #8597a3;
   --terracotta: #b04a35; /* the one colour outside the palette */
 
   /* M3 colour roles (contrast ratios against their background) */
@@ -27,7 +28,11 @@
   --md-sys-color-on-primary: var(--carbon-black); /* 4.77:1 */
   --md-sys-color-secondary-container: var(--mauve-bark);
   --md-sys-color-on-secondary-container: var(--silver); /* 4.44:1, large text only */
-  --md-sys-color-outline: var(--dusty-taupe-dark); /* 4.07:1, borders and large text */
+  --md-sys-color-outline: var(--dusty-taupe); /* 4.05:1 on the panel */
+  --field-focus: var(--ochre); /* 4.57:1 on the panel; only 1.13:1 against the outline, so focus also shows by its thicker border */
+  --md-sys-color-tertiary: var(--steel);
+  --md-sys-color-tertiary-container: #302f2f; /* 15% Steel over Carbon Black; Silver 6.76:1, Steel icon 4.42:1 */
+  --placeholder: rgb(192 183 176 / 0.6); /* dimmed Silver, so an empty field doesn't look filled in */
   --md-sys-color-error: var(--terracotta);
   --md-sys-color-on-error: #fff; /* 5.42:1 */
 
@@ -128,18 +133,21 @@ p {
 .top-bar {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   gap: 16px;
+  min-height: 80px; /* room for Finish, so the bar keeps its height once it appears */
   padding: 16px var(--page-gutter);
 }
 
 .top-bar h1 {
   font-size: 1.375rem; /* M3 title-large */
   font-weight: 500;
+  line-height: 1.25;
 }
 
 .workout-time {
-  font-size: 1rem;
+  font-size: 0.9375rem;
+  line-height: 1.25; /* title and time fit in the bar's height, so it doesn't grow */
 }
 
 /* --- The workout ---------------------------------------------------------- */
@@ -157,11 +165,21 @@ p {
   display: contents;
 }
 
-.note {
+/* A different colour from the exercise cards, so it divides the title from them */
+.note-card {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--md-sys-shape-corner-medium);
+  background: var(--md-sys-color-tertiary-container);
   font-size: 0.9375rem;
+}
+
+.note-card .icon {
+  width: 1.5em;
+  height: 1.5em;
+  color: var(--md-sys-color-tertiary);
 }
 
 .empty {
@@ -225,12 +243,40 @@ p {
 .log-panel {
   position: sticky;
   bottom: 0;
+  z-index: 1; /* the error pill floats over the cards */
   display: grid;
+  grid-template-columns: minmax(0, 1fr); /* long text truncates instead of widening the panel */
   gap: 12px;
-  padding: 16px var(--page-gutter);
+  padding: 8px var(--page-gutter);
   padding-bottom: calc(16px + env(safe-area-inset-bottom));
   background: var(--md-sys-color-surface-container);
   border-radius: var(--md-sys-shape-corner-large) var(--md-sys-shape-corner-large) 0 0;
+}
+
+/* Always one button tall, even when empty, so the panel never changes height */
+.last-logged {
+  min-height: 48px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+/* A long name is shortened, never the set, which is what Undo would remove */
+.last-logged-text {
+  display: flex;
+  gap: 0.3em;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.last-logged-label {
+  opacity: 0.8;
+}
+
+.last-logged-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .fields {
@@ -262,7 +308,7 @@ p {
 }
 
 .field input::placeholder {
-  color: var(--md-sys-color-outline);
+  color: var(--placeholder);
 }
 
 .field.invalid input {
@@ -272,14 +318,8 @@ p {
 
 .field input:focus {
   outline: none;
-  border: 2px solid var(--md-sys-color-primary);
+  border: 2px solid var(--field-focus);
   padding: 0 11px;
-}
-
-.actions {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
 }
 
 /* --- Buttons -------------------------------------------------------------- */
@@ -338,6 +378,11 @@ p {
   padding: 0 12px;
 }
 
+.btn-small {
+  flex: none;
+  padding: 0 20px;
+}
+
 .btn-block {
   width: 100%;
   min-height: 64px;
@@ -345,7 +390,13 @@ p {
 
 /* --- Error pill: stays until the problem is gone ------------------------- */
 
+/* Floats 20px above the panel, over the cards, so it never changes the
+   panel's size or moves anything. A long message grows upwards. */
 .error-pill {
+  position: absolute;
+  bottom: calc(100% + 20px);
+  left: var(--page-gutter);
+  right: var(--page-gutter);
   display: flex;
   align-items: center;
   gap: 8px;

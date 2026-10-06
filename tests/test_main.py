@@ -1,3 +1,4 @@
+import re
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -28,8 +29,11 @@ def test_index_without_workout_shows_empty_state(client):
     response = client.get("/")
     assert response.status_code == 200
     assert "No workout yet. Log your first set to start." in response.text
-    assert "Share this workout to keep it" not in response.text
+    assert "Share your workout to keep it" not in response.text
     assert "started" not in response.text
+    assert "Finish" not in response.text
+    # The Undo line is there but empty, keeping the panel's height
+    assert re.search(r'<div class="last-logged">\s*</div>', response.text)
 
 
 def test_index_shows_exercises_in_first_logged_order(client):
@@ -45,7 +49,9 @@ def test_index_shows_exercises_in_first_logged_order(client):
     assert '5 × 100 kg</span> · <span class="set">5 × 105 kg' in text
     assert "8 × 62.5 kg" in text
     assert "12 reps" in text
-    assert "Share this workout to keep it" in text
+    assert "Only saved on this device. Share your workout to keep it." in text
+    assert ">Finish</button>" in text
+    assert '<span class="last-logged-name">Pull-up</span>' in text
 
 
 def test_index_shows_start_time_in_browser_time_zone(client):
