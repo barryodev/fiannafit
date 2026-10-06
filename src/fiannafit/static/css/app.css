@@ -32,6 +32,7 @@
   --field-focus: var(--ochre); /* 4.57:1 on the panel; only 1.13:1 against the outline, so focus also shows by its thicker border */
   --md-sys-color-tertiary: var(--steel);
   --md-sys-color-tertiary-container: #302f2f; /* 15% Steel over Carbon Black; Silver 6.76:1, Steel icon 4.42:1 */
+  --set-chip: #423028; /* 50% Mauve Bark over Carbon Black, a step up from the card */
   --placeholder: rgb(192 183 176 / 0.6); /* dimmed Silver, so an empty field doesn't look filled in */
   --md-sys-color-error: var(--terracotta);
   --md-sys-color-on-error: #fff; /* 5.42:1 */
@@ -230,8 +231,23 @@ p {
   margin-bottom: 4px;
 }
 
+/* Each set is a chip, so sets stay distinct when the row wraps. Flat (no
+   border or shadow), so they don't look like separate buttons: a tap
+   anywhere on the card picks the exercise. */
 .sets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
   font-size: 1.125rem;
+}
+
+.sets .set {
+  padding: 2px 10px;
+  border-radius: 8px;
+  background: var(--set-chip); /* Silver on it 6.32:1 */
 }
 
 .set {
@@ -250,6 +266,9 @@ p {
   padding: 8px var(--page-gutter);
   padding-bottom: calc(16px + env(safe-area-inset-bottom));
   background: var(--md-sys-color-surface-container);
+  /* A line along the top edge only, the desktop frame's colour, so cards
+     scrolling under the panel don't blend into it */
+  border-top: 1px solid var(--mauve-bark);
   border-radius: var(--md-sys-shape-corner-large) var(--md-sys-shape-corner-large) 0 0;
 }
 

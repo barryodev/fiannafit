@@ -11,11 +11,11 @@
   <h2><button type="button" class="card-pick"
               hx-get="/log-form?exercise={{ exercise.name | urlencode }}"
               hx-target="#log-panel" hx-swap="outerHTML" hx-sync="#log-panel:drop">{{ exercise.name }}</button></h2>
-  <p class="sets">
-    {%- for logged_set in exercise.sets -%}
-    <span class="set">{{ logged_set | set_text }}</span>{% if not loop.last %} · {% endif %}
-    {%- endfor -%}
-  </p>
+  <ul class="sets">
+    {%- for logged_set in exercise.sets %}
+    <li class="set">{{ logged_set | set_text }}</li>
+    {%- endfor %}
+  </ul>
 </section>
 {% endfor %}
 {% else %}

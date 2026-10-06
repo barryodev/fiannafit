@@ -46,7 +46,9 @@ def test_index_shows_exercises_in_first_logged_order(client):
     )
     text = client.get("/").text
     assert text.index("Back Squat") < text.index("Bench Press") < text.index("Pull-up")
-    assert '5 × 100 kg</span> · <span class="set">5 × 105 kg' in text
+    assert re.search(
+        r'<li class="set">5 × 100 kg</li>\s*<li class="set">5 × 105 kg</li>', text
+    )
     assert "8 × 62.5 kg" in text
     assert "12 reps" in text
     assert "Only saved on this device. Share your workout to keep it." in text
