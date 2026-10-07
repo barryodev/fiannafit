@@ -11,8 +11,8 @@ uv run --env-file .env uvicorn fiannafit.main:app --reload   # serve on http://1
 ```
 
 The app refuses to start without `SESSION_SECRET_KEY`, which signs the workout cookie.
-Until the logging UI exists (DAI-11), the temporary `/debug/...` routes can be tried from
-http://localhost:8000/docs (localhost, so the browser keeps the Secure cookie over http).
+Open http://localhost:8000 (localhost, not 127.0.0.1, so the browser keeps the Secure
+cookie over http).
 
 ## Try it on your phone
 

@@ -3,8 +3,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import FastAPI, Form, Query, Request, Response
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import FastAPI, Form, Request, Response
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -36,7 +36,8 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(lifespan=lifespan)
+# No API docs: the routes serve HTML fragments to the page, not a public API
+app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
 app.middleware("http")(workout_session.clear_invalid_session_cookie)
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
@@ -208,42 +209,3 @@ def new_workout(request: Request):
 def healthz():
     # Liveness check used by ops/deploy.sh after a restart
     return {"status": "ok"}
-
-
-# --- Temporary debug routes (DAI-8) -----------------------------------------
-# A way to exercise the session cookie by hand (e.g. from /docs) until the
-# logging UI exists. DAI-11 removes them.
-
-
-@app.get("/debug/session")
-def debug_session(request: Request):
-    session = load_session(request)
-    body = session.model_dump(mode="json")
-    body["cookie_bytes"] = len(request.cookies.get(workout_session.COOKIE_NAME, ""))
-    return body
-
-
-@app.post("/debug/sets")
-def debug_log_set(
-    request: Request,
-    exercise: str = Query(min_length=1),
-    reps: int = Query(ge=1),
-    weight_kg: float | None = Query(default=None, ge=0),
-):
-    session = load_session(request)
-    session.log_set(exercise, reps, weight_kg)
-    response = JSONResponse(session.model_dump(mode="json"))
-    try:
-        save_session(request, response, session)
-    except SessionFull:
-        return JSONResponse({"detail": "session full, set not saved"}, status_code=409)
-    return response
-
-
-@app.post("/debug/new-workout")
-def debug_new_workout(request: Request):
-    session = load_session(request)
-    session.new_workout()
-    response = JSONResponse(session.model_dump(mode="json"))
-    save_session(request, response, session)
-    return response

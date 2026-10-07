@@ -96,8 +96,23 @@ def test_static_assets_are_served(client, path):
     assert client.get(path).status_code == 200
 
 
-def test_hello_world_is_gone(client):
-    assert client.get("/hello").status_code == 404
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/hello",
+        "/debug/session",
+        "/docs",
+        "/redoc",
+        "/openapi.json",
+    ],
+)
+def test_removed_routes_are_gone(client, path):
+    assert client.get(path).status_code == 404
+
+
+@pytest.mark.parametrize("path", ["/debug/sets", "/debug/new-workout"])
+def test_removed_debug_writes_are_gone(client, path):
+    assert client.post(path).status_code == 404
 
 
 def test_healthz_returns_ok(client):

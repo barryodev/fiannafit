@@ -187,7 +187,8 @@ def test_page_is_prefilled_from_the_cookie(client):
 
 def test_page_suggests_workout_and_recent_exercises(client):
     log(client, "Deadlift", "5", "140")
-    client.post("/debug/new-workout")
+    client.post("/finish")
+    client.post("/new-workout")
     log(client, "Squat", "5", "100")
     html = client.get("/").text
     datalist = re.search(
