@@ -4,7 +4,7 @@ import re
 from dataclasses import dataclass
 
 from fiannafit.display import format_weight
-from fiannafit.session import Session, normalise_name
+from fiannafit.session import LoggedSet, Session, normalise_name
 
 MAX_NAME_LENGTH = 40
 MAX_REPS = 999
@@ -76,8 +76,14 @@ def prefill(session: Session, name: str | None = None) -> FormValues | None:
     last = session.last_set_of(name) if name else None
     if last is None:
         return None
-    kg = "0" if last.weight_kg is None else format_weight(last.weight_kg)
-    return FormValues(name, str(last.reps), kg)
+    return set_values(name, last)
+
+
+def set_values(name: str, logged_set: LoggedSet) -> FormValues:
+    """A logged set as the form shows it, with bodyweight as 0 kg."""
+    weight = logged_set.weight_kg
+    kg = "0" if weight is None else format_weight(weight)
+    return FormValues(name, str(logged_set.reps), kg)
 
 
 def suggestions(session: Session) -> list[str]:

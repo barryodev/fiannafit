@@ -110,3 +110,14 @@ def browser_context_args(browser_context_args):
         "is_mobile": True,
         "has_touch": True,
     }
+
+
+@pytest.fixture(autouse=True)
+def no_browser_dialogs(page):
+    """Fail if the browser's own alert(), confirm() or prompt() box ever opens.
+    Playwright dismisses them silently, so without this a test would pass
+    while a real user saw a second box on top of ours."""
+    opened: list[str] = []
+    page.on("dialog", lambda dialog: opened.append(f"{dialog.type}: {dialog.message}"))
+    yield
+    assert not opened, f"A browser dialog opened: {opened}"

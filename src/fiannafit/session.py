@@ -69,9 +69,11 @@ class Session(BaseModel):
         exercise.sets.append(LoggedSet(reps=reps, weight_kg=weight_kg, logged_at=now))
         self._remember_exercise(exercise.name)
 
-    def delete_last_set(self) -> LoggedSet | None:
+    def delete_last_set(self, logged_at: datetime | None = None) -> LoggedSet | None:
         """Undo the most recently logged set, in whichever exercise it is.
 
+        With logged_at, only if the latest set was logged at that moment, so a
+        repeated or out-of-date Undo can't remove a different set.
         An exercise left with no sets is removed, and so is a workout left with
         no exercises: the workout starts with its first set, so it un-starts too.
         Returns the deleted set, or None if there was nothing to delete.
@@ -81,6 +83,8 @@ class Session(BaseModel):
         if latest is None:
             return None
         exercise, logged_set = latest
+        if logged_at is not None and logged_set.logged_at != logged_at:
+            return None
         exercise.sets.remove(logged_set)
         if not exercise.sets:
             self.workout.exercises.remove(exercise)

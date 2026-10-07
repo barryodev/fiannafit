@@ -9,6 +9,20 @@
 </main>
 </div>
 
-{% include "_log_form.html" %}
+{% include "_log_panel.html" %}
 </div>
+
+{# Asks before Finish and New Workout. app.js fills it in from the button's
+   hx-confirm (the title) and data-confirm-* attributes. Cancel comes first
+   and has focus, so a stray tap or Enter does nothing. #}
+<dialog id="confirm" class="dialog" aria-labelledby="confirm-title" aria-describedby="confirm-body">
+  <form method="dialog">
+    <h2 id="confirm-title"></h2>
+    <p id="confirm-body"></p>
+    <div class="dialog-actions">
+      <button value="cancel" class="btn btn-text" autofocus>Cancel</button>
+      <button id="confirm-action" value="confirm" class="btn btn-tonal"></button>
+    </div>
+  </form>
+</dialog>
 {% endblock %}

@@ -425,3 +425,48 @@ p {
   color: var(--md-sys-color-on-error);
   font-weight: 500;
 }
+
+/* --- Confirm dialog (Finish, New Workout) ---------------------------------- */
+
+/* M3's basic dialog, in the panel's colour. No padding on the dialog itself:
+   app.js treats a click on it as a tap on the backdrop. */
+.dialog {
+  width: min(calc(100vw - 2 * var(--page-gutter)), 360px);
+  padding: 0;
+  border: none;
+  border-radius: 28px;
+  background: var(--md-sys-color-surface-container);
+  color: var(--md-sys-color-on-surface);
+}
+
+.dialog::backdrop {
+  background: rgb(0 0 0 / 0.6);
+}
+
+.dialog form {
+  display: grid;
+  gap: 16px;
+  padding: 24px;
+}
+
+.dialog h2 {
+  font-size: 1.5rem; /* M3 headline-small */
+  font-weight: 400;
+  line-height: 1.33;
+}
+
+/* Right-aligned like M3. When a long confirm label doesn't fit beside Cancel
+   (360px phones), they stack as M3 does: confirm on top, Cancel under it. */
+.dialog-actions {
+  display: flex;
+  flex-wrap: wrap-reverse;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* --- Finished: the panel only holds Share ---------------------------------- */
+
+.log-panel-finished {
+  padding-top: 16px;
+}

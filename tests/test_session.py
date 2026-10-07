@@ -150,6 +150,24 @@ def test_deleting_the_only_set_unstarts_the_workout():
     assert session.recent_exercises == ["Squat"]
 
 
+def test_delete_last_set_named_by_its_time():
+    session = Session()
+    session.log_set("Squat", 5, 100, now=T0)
+    session.log_set("Squat", 5, 105, now=T0 + timedelta(minutes=5))
+    removed = session.delete_last_set(logged_at=T0 + timedelta(minutes=5))
+    assert removed.weight_kg == 105
+
+
+def test_delete_last_set_leaves_a_set_that_is_no_longer_the_latest():
+    # A repeated Undo: the set it named is gone, so the one now last stays
+    session = Session()
+    session.log_set("Squat", 5, 100, now=T0)
+    session.log_set("Squat", 5, 105, now=T0 + timedelta(minutes=5))
+    session.delete_last_set(logged_at=T0 + timedelta(minutes=5))
+    assert session.delete_last_set(logged_at=T0 + timedelta(minutes=5)) is None
+    assert [s.weight_kg for s in session.workout.exercises[0].sets] == [100]
+
+
 def test_delete_last_set_with_no_workout_does_nothing():
     session = Session()
     assert session.delete_last_set() is None

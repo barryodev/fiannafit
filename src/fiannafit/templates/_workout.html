@@ -6,11 +6,16 @@
 </p>
 {% for exercise in workout.exercises %}
 <section class="card"{% if exercise.name == current_exercise %} id="current-exercise"{% endif %}>
+  {% if workout.ended_at %}
+  {# Finished, so there's no form to fill #}
+  <h2>{{ exercise.name }}</h2>
+  {% else %}
   {# The button covers the whole card (see .card-pick), so a tap anywhere
      fills the form with this exercise's last set #}
   <h2><button type="button" class="card-pick"
               hx-get="/log-form?exercise={{ exercise.name | urlencode }}"
               hx-target="#log-panel" hx-swap="outerHTML" hx-sync="#log-panel:drop">{{ exercise.name }}</button></h2>
+  {% endif %}
   <ul class="sets">
     {%- for logged_set in exercise.sets %}
     <li class="set">{{ logged_set | set_text }}</li>

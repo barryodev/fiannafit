@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from datetime import datetime
 from pathlib import Path
 from typing import Annotated
 
@@ -9,7 +10,14 @@ from fastapi.templating import Jinja2Templates
 
 from fiannafit import session as workout_session
 from fiannafit.display import TZ_COOKIE, clock, format_set, parse_timezone
-from fiannafit.forms import FormValues, InvalidSet, parse_set, prefill, suggestions
+from fiannafit.forms import (
+    FormValues,
+    InvalidSet,
+    parse_set,
+    prefill,
+    set_values,
+    suggestions,
+)
 from fiannafit.session import (
     Session,
     SessionFull,
@@ -93,15 +101,23 @@ def log_set(
         response = templates.TemplateResponse(
             request,
             "_log_response.html",
-            screen_context(request, session) | {"logged": True},
+            screen_context(request, session) | {"whole_screen": True},
         )
         save_session(request, response, session)
         return response
     except InvalidSet as e:
         error = e
     except WorkoutFinished:
+        # Sent from a page that's out of date, such as another tab: bring the
+        # whole screen up to date, with the pill saying why nothing was logged
         error = InvalidSet(
             "This workout is finished. Start a new workout to log more sets.", ""
+        )
+        return templates.TemplateResponse(
+            request,
+            "_log_response.html",
+            screen_context(request, session, error=error) | {"whole_screen": True},
+            status_code=422,
         )
     except SessionFull:
         error = InvalidSet(
@@ -115,6 +131,77 @@ def log_set(
         screen_context(request, load_session(request), typed, error),
         status_code=422,
     )
+
+
+def screen_update(
+    request: Request,
+    session: Session,
+    form: FormValues | None = None,
+    changed: bool = True,
+    just_undone: bool = False,
+) -> Response:
+    """The log panel, cards and top bar, after Undo, Finish or New Workout.
+    Saves the session only if it changed. Each of these also answers a request
+    from an out-of-date page (another tab, a repeated tap) by showing how
+    things are now, rather than with an error."""
+    response = templates.TemplateResponse(
+        request,
+        "_log_response.html",
+        screen_context(request, session, form)
+        | {"whole_screen": True, "just_undone": just_undone},
+    )
+    if changed:
+        save_session(request, response, session)
+    return response
+
+
+@app.post("/undo", response_class=HTMLResponse)
+def undo(request: Request, logged_at: Annotated[str, Form()] = ""):
+    """Remove the set the Undo button showed, if it's still the latest, and
+    put it in the form: fix a number and log it again, or just log it again."""
+    session = load_session(request)
+    latest = session.latest()
+    try:
+        removed = session.delete_last_set(logged_at=datetime.fromisoformat(logged_at))
+    except ValueError, WorkoutFinished:
+        removed = None
+    if removed is None:
+        return screen_update(request, session, changed=False)
+    exercise, _ = latest
+    return screen_update(
+        request, session, set_values(exercise.name, removed), just_undone=True
+    )
+
+
+@app.post("/finish", response_class=HTMLResponse)
+def finish(request: Request):
+    session = load_session(request)
+    if session.workout is None:
+        return screen_update(request, session, changed=False)
+    session.finish()
+    try:
+        return screen_update(request, session)
+    except SessionFull:
+        # Only possible right at the size limit: the end time needs a few bytes
+        error = InvalidSet(
+            "This workout is too big to store, so it can't be finished. "
+            "Share it to keep it.",
+            "",
+        )
+        return templates.TemplateResponse(
+            request,
+            "_log_response.html",
+            screen_context(request, load_session(request), error=error),
+            status_code=422,
+        )
+
+
+@app.post("/new-workout", response_class=HTMLResponse)
+def new_workout(request: Request):
+    """Delete the current workout. Recent exercise names are kept."""
+    session = load_session(request)
+    session.new_workout()
+    return screen_update(request, session)
 
 
 @app.get("/healthz")

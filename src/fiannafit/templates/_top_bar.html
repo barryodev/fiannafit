@@ -1,5 +1,5 @@
-{# Swapped in by id after a set is logged, as the first set adds the start
-   time and Finish. #}
+{# Swapped in by id whenever the workout changes: the first set adds the
+   start time and Finish, Finish adds the end time and New Workout. #}
 <header id="top-bar" class="top-bar"{% if oob %} hx-swap-oob="true"{% endif %}>
   <div>
     <h1>Fianna Fit</h1>
@@ -13,8 +13,19 @@
     </p>
     {% endif %}
   </div>
-  {% if workout %}
-  {# Placeholder until step 5 #}
-  <button type="button" class="btn btn-tonal btn-small">Finish</button>
+  {# One workout-level button at a time: Finish, then New Workout #}
+  {% if workout and workout.ended_at %}
+  {# Always warns for now: DAI-9 adds sharing, and stops the warning once shared #}
+  <button type="button" class="btn btn-tonal btn-small"
+          hx-post="/new-workout" hx-target="#log-panel" hx-swap="outerHTML"
+          hx-confirm="Start a New Workout?"
+          data-confirm-body="This workout hasn't been shared. Starting a new one deletes it."
+          data-confirm-action="Delete and Start New">New Workout</button>
+  {% elif workout %}
+  <button type="button" class="btn btn-tonal btn-small"
+          hx-post="/finish" hx-target="#log-panel" hx-swap="outerHTML"
+          hx-confirm="Finish Workout?"
+          data-confirm-body="You can't add sets after finishing."
+          data-confirm-action="Finish">Finish</button>
   {% endif %}
 </header>

@@ -126,3 +126,17 @@ def test_the_workout_survives_a_reload(app: Page):
     expect(chips(app, "Back Squat")).to_have_text(["5 × 100 kg", "5 × 100 kg"])
     expect(app.locator(".workout-time")).to_contain_text("started")
     expect(app.locator(".last-logged-name")).to_have_text("Back Squat")
+
+
+def test_suggestions_wait_until_typing_pauses(app: Page):
+    # The browser's dropdown can't be seen by the tests, but whether the field
+    # is linked to it can: unlinked while typing, linked again after a pause
+    name = app.get_by_label("Exercise")
+    expect(name).to_have_attribute("list", "exercise-suggestions")
+
+    name.press_sequentially("Squ", delay=100)
+    expect(name).not_to_have_attribute("list", "exercise-suggestions")
+    name.press("Backspace")
+    expect(name).not_to_have_attribute("list", "exercise-suggestions")
+
+    expect(name).to_have_attribute("list", "exercise-suggestions", timeout=1000)

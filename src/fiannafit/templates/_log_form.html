@@ -18,16 +18,19 @@
       <span class="last-logged-name">{{ exercise.name }}</span>
       <span class="set">{{ logged_set | set_text }}</span>
     </p>
-    {# Placeholder until step 5 #}
-    <button type="button" class="btn btn-tonal btn-small">Undo</button>
+    {# Names the set it removes, so a repeated or out-of-date tap can't
+       remove a different one. Waits for any request the form has in flight.
+       Straight after an Undo it arrives disabled, and app.js enables it a
+       moment later, so the second tap of a double tap can't remove this
+       set too. #}
+    <button type="button" class="btn btn-tonal btn-small"
+            hx-post="/undo" hx-vals='{{ {"logged_at": logged_set.logged_at.isoformat()} | tojson }}'
+            hx-target="#log-panel" hx-swap="outerHTML"
+            hx-sync="#log-panel:drop" hx-disabled-elt="this"
+            {%- if just_undone %} disabled data-cooldown{% endif %}>Undo</button>
     {% endif %}
   </div>
-  {% if error %}
-  <p id="log-error" class="error-pill" role="alert">
-    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 13h2V7h-2v6Zm1 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm0 5a10 10 0 1 1 0-20 10 10 0 0 1 0 20Z"/></svg>
-    {{ error.message }}
-  </p>
-  {% endif %}
+  {% include "_error_pill.html" %}
   <div class="fields">
     {% set invalid = error.field if error else none %}
     <label class="field field-wide{% if invalid == 'exercise' %} invalid{% endif %}">

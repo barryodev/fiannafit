@@ -1,7 +1,8 @@
-{# What POST /sets returns: the form, plus (after a set is logged) the
-   cards and the top bar, swapped in by id. #}
-{% include "_log_form.html" %}
-{% if logged %}
+{# What POST /sets, /undo, /finish and /new-workout return: the log panel,
+   plus (whenever the workout may have changed) the cards and the top bar,
+   swapped in by id. #}
+{% include "_log_panel.html" %}
+{% if whole_screen %}
 {% with oob = true %}
 {% include "_workout.html" %}
 {% include "_top_bar.html" %}
