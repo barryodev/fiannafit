@@ -21,6 +21,7 @@ Design decisions behind this setup are in Linear (project "Fianna Fit", issues D
 | `provision.sh` | App setup that is safe to re-run. You run it on the VM over SSH |
 | `fiannafit.caddy` | Fianna Fit's Caddy site: HTTPS for `fiannafit.barryodev.io`, proxied to the app |
 | `deploy.sh` | You run it locally to ship the latest `main` to a named target (`local`, `prod`) and check its health |
+| `local-phone-test.sh` | You run it locally to serve the app over HTTPS on your home network (self-signed cert, kept outside the repo), to try it on a phone |
 | `targets.env.example` | Template for `targets.env` (gitignored), which maps target names to SSH addresses |
 | `fiannafit.service` | systemd unit that runs uvicorn on `127.0.0.1:8000` as the `fiannafit` user |
 

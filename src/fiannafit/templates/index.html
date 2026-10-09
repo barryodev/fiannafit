@@ -1,14 +1,28 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Fianna Fit</title>
-  <script src="/static/htmx-2.0.11.min.js"></script>
-</head>
-<body>
-  <h1>Fianna Fit</h1>
-  <button hx-get="/hello" hx-target="#greeting">Say hello</button>
-  <p id="greeting"></p>
-</body>
-</html>
+{% extends "base.html" %}
+{% block body %}
+<div class="app">
+<div class="scroll">
+{% include "_top_bar.html" %}
+
+<main class="workout">
+  {% include "_workout.html" %}
+</main>
+</div>
+
+{% include "_log_panel.html" %}
+</div>
+
+{# Asks before Finish and New Workout. app.js fills it in from the button's
+   hx-confirm (the title) and data-confirm-* attributes. Cancel comes first
+   and has focus, so a stray tap or Enter does nothing. #}
+<dialog id="confirm" class="dialog" aria-labelledby="confirm-title" aria-describedby="confirm-body">
+  <form method="dialog">
+    <h2 id="confirm-title"></h2>
+    <p id="confirm-body"></p>
+    <div class="dialog-actions">
+      <button value="cancel" class="btn btn-text" autofocus>Cancel</button>
+      <button id="confirm-action" value="confirm" class="btn btn-tonal"></button>
+    </div>
+  </form>
+</dialog>
+{% endblock %}

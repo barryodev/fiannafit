@@ -11,14 +11,40 @@ uv run --env-file .env uvicorn fiannafit.main:app --reload   # serve on http://1
 ```
 
 The app refuses to start without `SESSION_SECRET_KEY`, which signs the workout cookie.
-Until the logging UI exists (DAI-11), the temporary `/debug/...` routes can be tried from
-http://localhost:8000/docs (localhost, so the browser keeps the Secure cookie over http).
+Open http://localhost:8000 (localhost, not 127.0.0.1, so the browser keeps the Secure
+cookie over http).
+
+## Try it on your phone
+
+```sh
+ops/local-phone-test.sh
+```
+
+Serves the app over HTTPS on your home network and prints the address to open on the
+phone (same Wi-Fi). The workout cookie is Secure, so it needs HTTPS; the script makes a
+self-signed certificate on first run, kept in `~/.local/share/fiannafit-dev/`, outside the
+repo. The phone warns about it once per address: tap through to continue.
 
 ## Test
 
 ```sh
+uv run playwright install chromium webkit   # once: the browsers for tests/browser
 uv run pytest
 ```
+
+Every run includes the browser tests in `tests/browser/`, in Chromium and WebKit (the
+nearest stand-in for iOS Safari). They start the app over HTTPS with a throwaway
+certificate, so the Secure session cookie works as in production.
+
+```sh
+uv run pytest tests/browser --browser chromium              # one engine only
+uv run pytest tests/browser --show                           # watch them run
+```
+
+`--show` opens the browser and slows each step down (`--headed --slowmo 300`), in
+Chromium only. On a desktop with display scaling (e.g. GNOME's text scaling), a headed
+WebKit window zooms the page, so the layout tests that compare widths fail there.
+Headless WebKit isn't affected.
 
 ## Lint & format
 

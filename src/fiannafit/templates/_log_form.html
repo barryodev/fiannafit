@@ -1,0 +1,62 @@
+{#
+  The log panel, pinned to the bottom of the screen. A successful post
+  returns this form pre-filled for the next set, plus the cards and start
+  time swapped in by id (_log_response.html). Errors return just the form,
+  with what was typed and a red pill. novalidate: the server does all the
+  checking, so every error looks the same.
+#}
+<form id="log-panel" class="log-panel" novalidate
+      hx-post="/sets" hx-target="this" hx-swap="outerHTML"
+      hx-sync="this:drop" hx-disabled-elt="#log-set">
+  {# The set Undo would remove. The line keeps its height while empty, so the
+     panel doesn't grow when the first set is logged. #}
+  <div class="last-logged">
+    {% if latest %}
+    {% set exercise, logged_set = latest %}
+    <p class="last-logged-text">
+      <span class="last-logged-label">Last:</span>
+      <span class="last-logged-name">{{ exercise.name }}</span>
+      <span class="set">{{ logged_set | set_text }}</span>
+    </p>
+    {# Names the set it removes, so a repeated or out-of-date tap can't
+       remove a different one. Waits for any request the form has in flight.
+       Straight after an Undo it arrives disabled, and app.js enables it a
+       moment later, so the second tap of a double tap can't remove this
+       set too. #}
+    <button type="button" class="btn btn-tonal btn-small"
+            hx-post="/undo" hx-vals='{{ {"logged_at": logged_set.logged_at.isoformat()} | tojson }}'
+            hx-target="#log-panel" hx-swap="outerHTML"
+            hx-sync="#log-panel:drop" hx-disabled-elt="this"
+            {%- if just_undone %} disabled data-cooldown{% endif %}>Undo</button>
+    {% endif %}
+  </div>
+  {% include "_error_pill.html" %}
+  <div class="fields">
+    {% set invalid = error.field if error else none %}
+    <label class="field field-wide{% if invalid == 'exercise' %} invalid{% endif %}">
+      <span>Exercise</span>
+      {# Picking or typing a name with sets in this workout re-fills reps and kg
+         from its last set. this:replace so only the latest name counts. #}
+      <input type="text" name="exercise" value="{{ form.exercise }}"
+             hx-get="/log-form" hx-trigger="input changed delay:250ms"
+             hx-select-oob="#reps-field,#kg-field" hx-swap="none" hx-sync="this:replace"
+             list="exercise-suggestions" placeholder="e.g. Back Squat"
+             autocomplete="off" autocapitalize="words" autocorrect="off" spellcheck="false"
+             {% if invalid == 'exercise' %}aria-invalid="true" aria-describedby="log-error"{% endif %}>
+    </label>
+    <datalist id="exercise-suggestions">
+      {% for name in suggestions %}<option value="{{ name }}">{% endfor %}
+    </datalist>
+    <label id="reps-field" class="field{% if invalid == 'reps' %} invalid{% endif %}">
+      <span>Reps</span>
+      <input type="text" name="reps" value="{{ form.reps }}" inputmode="numeric" autocomplete="off"
+             {% if invalid == 'reps' %}aria-invalid="true" aria-describedby="log-error"{% endif %}>
+    </label>
+    <label id="kg-field" class="field{% if invalid == 'kg' %} invalid{% endif %}">
+      <span>kg</span>
+      <input type="text" name="kg" value="{{ form.kg }}" inputmode="decimal" autocomplete="off"
+             {% if invalid == 'kg' %}aria-invalid="true" aria-describedby="log-error"{% endif %}>
+    </label>
+  </div>
+  <button id="log-set" type="submit" class="btn btn-filled btn-block">Log Set</button>
+</form>

@@ -1,0 +1,472 @@
+/* Fianna Fit: dark theme only, Material 3 as a guide (DAI-11). */
+
+@font-face {
+  font-family: "Roboto";
+  /* Android has Roboto built in, so only iOS downloads the file */
+  src: local("Roboto"), url("/static/fonts/roboto-latin-wght.woff2") format("woff2");
+  font-weight: 400 700;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: dark;
+
+  /* The palette */
+  --carbon-black: #211d1a;
+  --silver: #c0b7b0;
+  --dusty-taupe: #a4826d;
+  --mauve-bark: #644336;
+  --ochre: #b08d4c;
+  --steel: #8597a3;
+  --terracotta: #b04a35; /* the one colour outside the palette */
+
+  /* M3 colour roles (contrast ratios against their background) */
+  --md-sys-color-surface: var(--carbon-black);
+  --md-sys-color-on-surface: var(--silver); /* 8.48:1 */
+  --md-sys-color-surface-container: #352822; /* 30% Mauve Bark over Carbon Black; Silver 7.2:1 */
+  --md-sys-color-primary: var(--dusty-taupe);
+  --md-sys-color-on-primary: var(--carbon-black); /* 4.77:1 */
+  --md-sys-color-secondary-container: var(--mauve-bark);
+  --md-sys-color-on-secondary-container: var(--silver); /* 4.44:1, large text only */
+  --md-sys-color-outline: var(--dusty-taupe); /* 4.05:1 on the panel */
+  --field-focus: var(--ochre); /* 4.57:1 on the panel; only 1.13:1 against the outline, so focus also shows by its thicker border */
+  --md-sys-color-tertiary: var(--steel);
+  --md-sys-color-tertiary-container: #302f2f; /* 15% Steel over Carbon Black; Silver 6.76:1, Steel icon 4.42:1 */
+  --set-chip: #423028; /* 50% Mauve Bark over Carbon Black, a step up from the card */
+  --placeholder: rgb(192 183 176 / 0.6); /* dimmed Silver, so an empty field doesn't look filled in */
+  --md-sys-color-error: var(--terracotta);
+  --md-sys-color-on-error: #fff; /* 5.42:1 */
+
+  /* M3 shape */
+  --md-sys-shape-corner-extra-small: 4px;
+  --md-sys-shape-corner-medium: 12px;
+  --md-sys-shape-corner-large: 16px;
+  --md-sys-shape-corner-full: 999px;
+
+  --page-gutter: 16px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--md-sys-color-surface);
+}
+
+body {
+  margin: 0;
+  background: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
+  font: 400 1rem/1.5 "Roboto", "Helvetica Neue", Arial, sans-serif;
+}
+
+/* On a phone the app is the whole screen and the page itself scrolls,
+   with the log panel stuck to the bottom of the screen. */
+.app {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.scroll {
+  flex: 1; /* pushes the log panel to the bottom when the list is short */
+  display: flex;
+  flex-direction: column;
+}
+
+/* On a tablet or desktop the app sits centred in a phone-sized frame.
+   Only the header and workout scroll, so the scrollbar stops at the log
+   panel, and it's inset from the frame so it clears the rounded corners. */
+@media (min-width: 600px) {
+  body {
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .app {
+    width: 412px;
+    height: min(924px, calc(100dvh - 48px));
+    min-height: 0;
+    overflow: hidden;
+    border: 1px solid var(--mauve-bark);
+    border-radius: 24px;
+  }
+
+  .scroll {
+    min-height: 0;
+    overflow-y: auto;
+    margin: 12px 4px 0 0;
+    scrollbar-gutter: stable; /* no layout jump when the list starts to scroll */
+    scrollbar-width: thin;
+    scrollbar-color: var(--mauve-bark) transparent;
+  }
+
+  /* Make up for the inset and the scrollbar so content lines up with the panel */
+  .scroll .top-bar {
+    padding-top: 4px;
+  }
+
+  .scroll .top-bar,
+  .scroll .workout {
+    padding-right: 6px;
+  }
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+.icon {
+  width: 1.25em;
+  height: 1.25em;
+  flex: none;
+  fill: currentColor;
+}
+
+/* --- Top bar ------------------------------------------------------------ */
+
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  min-height: 80px; /* room for Finish, so the bar keeps its height once it appears */
+  padding: 16px var(--page-gutter);
+}
+
+.top-bar h1 {
+  font-size: 1.375rem; /* M3 title-large */
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+.workout-time {
+  font-size: 0.9375rem;
+  line-height: 1.25; /* title and time fit in the bar's height, so it doesn't grow */
+}
+
+/* --- The workout ---------------------------------------------------------- */
+
+.workout {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 var(--page-gutter) 16px;
+}
+
+/* Just a wrapper that responses swap by id; the cards lay out as if it weren't there */
+.workout-list {
+  display: contents;
+}
+
+/* A different colour from the exercise cards, so it divides the title from them */
+.note-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--md-sys-shape-corner-medium);
+  background: var(--md-sys-color-tertiary-container);
+  font-size: 0.9375rem;
+}
+
+.note-card .icon {
+  width: 1.5em;
+  height: 1.5em;
+  color: var(--md-sys-color-tertiary);
+}
+
+.empty {
+  margin-top: 32px;
+  text-align: center;
+  font-size: 1.125rem;
+}
+
+.card {
+  position: relative;
+  background: var(--md-sys-color-surface-container);
+  border-radius: var(--md-sys-shape-corner-medium);
+  padding: 16px;
+}
+
+/* The exercise name is a button, stretched over the whole card so the card
+   is one big tap target. It keeps the heading for screen readers. */
+.card-pick {
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.card-pick::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: var(--md-sys-shape-corner-medium);
+}
+
+.card:has(.card-pick:active) {
+  filter: brightness(1.15);
+}
+
+.card:has(.card-pick:focus-visible) {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: 2px;
+}
+
+.card h2 {
+  font-size: 1.25rem;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+/* Each set is a chip, so sets stay distinct when the row wraps. Flat (no
+   border or shadow), so they don't look like separate buttons: a tap
+   anywhere on the card picks the exercise. */
+.sets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 1.125rem;
+}
+
+.sets .set {
+  padding: 2px 10px;
+  border-radius: 8px;
+  background: var(--set-chip); /* Silver on it 6.32:1 */
+}
+
+.set {
+  white-space: nowrap; /* never split "5 × 100 kg" across lines */
+}
+
+/* --- Log panel, pinned to the bottom (thumb zone) -------------------------- */
+
+.log-panel {
+  position: sticky;
+  bottom: 0;
+  z-index: 1; /* the error pill floats over the cards */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr); /* long text truncates instead of widening the panel */
+  gap: 12px;
+  padding: 8px var(--page-gutter);
+  padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  background: var(--md-sys-color-surface-container);
+  /* A line along the top edge only, the desktop frame's colour, so cards
+     scrolling under the panel don't blend into it */
+  border-top: 1px solid var(--mauve-bark);
+  border-radius: var(--md-sys-shape-corner-large) var(--md-sys-shape-corner-large) 0 0;
+}
+
+/* Always one button tall, even when empty, so the panel never changes height */
+.last-logged {
+  min-height: 48px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+/* A long name is shortened, never the set, which is what Undo would remove */
+.last-logged-text {
+  display: flex;
+  gap: 0.3em;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.last-logged-label {
+  opacity: 0.8;
+}
+
+.last-logged-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.field {
+  display: grid;
+  gap: 4px;
+  font-size: 0.875rem;
+}
+
+.field-wide {
+  grid-column: 1 / -1;
+}
+
+.field input {
+  width: 100%;
+  min-height: 56px;
+  padding: 0 12px;
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--md-sys-shape-corner-extra-small);
+  background: transparent;
+  color: var(--md-sys-color-on-surface);
+  font: inherit;
+  font-size: 1.25rem; /* 16px or more stops iOS zooming in on focus */
+}
+
+.field input::placeholder {
+  color: var(--placeholder);
+}
+
+.field.invalid input {
+  border: 2px solid var(--md-sys-color-error);
+  padding: 0 11px;
+}
+
+.field input:focus {
+  outline: none;
+  border: 2px solid var(--field-focus);
+  padding: 0 11px;
+}
+
+/* --- Buttons -------------------------------------------------------------- */
+
+/* Labels are 19px bold, which counts as large text for contrast (WCAG),
+   so Silver on Mauve Bark (tonal) passes. Bigger than M3's 14px, for the gym. */
+.btn {
+  min-height: 48px;
+  padding: 0 24px;
+  border: none;
+  border-radius: var(--md-sys-shape-corner-full);
+  font: inherit;
+  font-size: 1.1875rem;
+  font-weight: 700;
+  /* Centre the capitals, not the font's line box, which includes descender
+     space and makes labels like "Undo Last Set" sit high. Browsers without
+     support keep the old look. */
+  text-box: trim-both cap alphabetic;
+  cursor: pointer;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: 2px;
+}
+
+.btn:active {
+  filter: brightness(1.15);
+}
+
+.btn:disabled {
+  opacity: 0.38;
+  cursor: default;
+  filter: none;
+}
+
+.btn-filled {
+  background: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+}
+
+.btn-tonal {
+  background: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+}
+
+.btn-outlined {
+  background: transparent;
+  border: 1px solid var(--md-sys-color-outline);
+  color: var(--md-sys-color-on-surface);
+}
+
+.btn-text {
+  background: transparent;
+  color: var(--md-sys-color-primary);
+  padding: 0 12px;
+}
+
+.btn-small {
+  flex: none;
+  padding: 0 20px;
+}
+
+.btn-block {
+  width: 100%;
+  min-height: 64px;
+}
+
+/* --- Error pill: stays until the problem is gone ------------------------- */
+
+/* Floats 20px above the panel, over the cards, so it never changes the
+   panel's size or moves anything. A long message grows upwards. */
+.error-pill {
+  position: absolute;
+  bottom: calc(100% + 1px + 20px); /* 100% stops inside the panel's top border */
+  left: var(--page-gutter);
+  right: var(--page-gutter);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: var(--md-sys-shape-corner-large);
+  background: var(--md-sys-color-error);
+  color: var(--md-sys-color-on-error);
+  font-weight: 500;
+}
+
+/* --- Confirm dialog (Finish, New Workout) ---------------------------------- */
+
+/* M3's basic dialog, in the panel's colour. No padding on the dialog itself:
+   app.js treats a click on it as a tap on the backdrop. */
+.dialog {
+  width: min(calc(100vw - 2 * var(--page-gutter)), 360px);
+  padding: 0;
+  border: none;
+  border-radius: 28px;
+  background: var(--md-sys-color-surface-container);
+  color: var(--md-sys-color-on-surface);
+}
+
+.dialog::backdrop {
+  background: rgb(0 0 0 / 0.6);
+}
+
+.dialog form {
+  display: grid;
+  gap: 16px;
+  padding: 24px;
+}
+
+.dialog h2 {
+  font-size: 1.5rem; /* M3 headline-small */
+  font-weight: 400;
+  line-height: 1.33;
+}
+
+/* Right-aligned like M3. When a long confirm label doesn't fit beside Cancel
+   (360px phones), they stack as M3 does: confirm on top, Cancel under it. */
+.dialog-actions {
+  display: flex;
+  flex-wrap: wrap-reverse;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* --- Finished: the panel only holds Share ---------------------------------- */
+
+.log-panel-finished {
+  padding-top: 16px;
+}

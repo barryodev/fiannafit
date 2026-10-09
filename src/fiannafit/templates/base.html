@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#211D1A">
+  <title>Fianna Fit</title>
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/static/favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="stylesheet" href="/static/css/app.css">
+  <script>
+    // The server runs in UTC; this tells it the phone's time zone for clock times.
+    document.cookie = "tz=" + Intl.DateTimeFormat().resolvedOptions().timeZone
+      + "; path=/; max-age=31536000; samesite=lax; secure";
+  </script>
+  {# HTMX's default responseHandling, plus swapping in 422 so validation errors show #}
+  <meta name="htmx-config" content='{"responseHandling": [{"code": "204", "swap": false}, {"code": "[23]..", "swap": true}, {"code": "422", "swap": true}, {"code": "[45]..", "swap": false, "error": true}, {"code": "...", "swap": false}]}'>
+  <script src="/static/htmx-2.0.11.min.js"></script>
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+{% block body %}{% endblock %}
+</body>
+</html>

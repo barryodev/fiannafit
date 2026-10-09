@@ -55,33 +55,99 @@ class Session(BaseModel):
     ) -> None:
         """Add a set, starting the workout if there isn't one yet."""
         now = now or datetime.now(UTC)
-        name = " ".join(name.split())
+        name = normalise_name(name)
         if not name:
             raise ValueError("exercise name is empty")
+        self._check_not_finished()
 
         if self.workout is None:
             self.workout = Workout(started_at=now)
-        exercise = next(
-            (e for e in self.workout.exercises if e.name.casefold() == name.casefold()),
-            None,
-        )
+        exercise = self._find_exercise(name)
         if exercise is None:
             exercise = Exercise(name=name)
             self.workout.exercises.append(exercise)
         exercise.sets.append(LoggedSet(reps=reps, weight_kg=weight_kg, logged_at=now))
         self._remember_exercise(exercise.name)
 
+    def delete_last_set(self, logged_at: datetime | None = None) -> LoggedSet | None:
+        """Undo the most recently logged set, in whichever exercise it is.
+
+        With logged_at, only if the latest set was logged at that moment, so a
+        repeated or out-of-date Undo can't remove a different set.
+        An exercise left with no sets is removed, and so is a workout left with
+        no exercises: the workout starts with its first set, so it un-starts too.
+        Returns the deleted set, or None if there was nothing to delete.
+        """
+        self._check_not_finished()
+        latest = self.latest()
+        if latest is None:
+            return None
+        exercise, logged_set = latest
+        if logged_at is not None and logged_set.logged_at != logged_at:
+            return None
+        exercise.sets.remove(logged_set)
+        if not exercise.sets:
+            self.workout.exercises.remove(exercise)
+        if not self.workout.exercises:
+            self.workout = None
+        return logged_set
+
+    def finish(self, now: datetime | None = None) -> None:
+        """End the workout. Finishing twice keeps the first end time."""
+        if self.workout is None:
+            raise ValueError("no workout to finish")
+        if self.workout.ended_at is None:
+            self.workout.ended_at = now or datetime.now(UTC)
+
     def new_workout(self) -> None:
         """Drop the current workout. Recent exercise names are kept."""
         self.workout = None
+
+    def last_set_of(self, name: str) -> LoggedSet | None:
+        """The latest set of this exercise in the current workout, for pre-filling."""
+        exercise = self._find_exercise(normalise_name(name))
+        return exercise.sets[-1] if exercise and exercise.sets else None
+
+    def current_exercise(self) -> str | None:
+        """The name of the exercise the latest set was logged under."""
+        latest = self.latest()
+        return latest[0].name if latest else None
+
+    def latest(self) -> tuple[Exercise, LoggedSet] | None:
+        """The most recently logged set and its exercise, the one Undo removes."""
+        if self.workout is None:
+            return None
+        candidates = [(e, e.sets[-1]) for e in self.workout.exercises if e.sets]
+        return max(candidates, key=lambda c: c[1].logged_at, default=None)
+
+    def _find_exercise(self, name: str) -> Exercise | None:
+        if self.workout is None:
+            return None
+        return next(
+            (e for e in self.workout.exercises if e.name.casefold() == name.casefold()),
+            None,
+        )
+
+    def _check_not_finished(self) -> None:
+        if self.workout is not None and self.workout.ended_at is not None:
+            raise WorkoutFinished("the workout is finished and read-only")
 
     def _remember_exercise(self, name: str) -> None:
         others = [n for n in self.recent_exercises if n.casefold() != name.casefold()]
         self.recent_exercises = [name, *others][:RECENT_EXERCISES_LIMIT]
 
 
+def normalise_name(name: str) -> str:
+    """Trim and collapse whitespace. Case is kept; matching ignores it."""
+    return " ".join(name.split())
+
+
 class SessionFull(Exception):
     """The session no longer fits in a cookie; the write was refused."""
+
+
+class WorkoutFinished(Exception):
+    """The workout has ended, so its sets can't change any more."""
 
 
 def _serializer() -> URLSafeTimedSerializer:
