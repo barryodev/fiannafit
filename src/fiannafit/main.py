@@ -26,7 +26,7 @@ from fiannafit.session import (
     normalise_name,
     save_session,
 )
-from fiannafit.share import summary_text
+from fiannafit.share import share_for
 
 BASE_DIR = Path(__file__).parent
 
@@ -60,7 +60,7 @@ def screen_context(
         "workout": workout,
         "tz": tz,
         # In the page before the tap: the share sheet only opens straight after one
-        "summary": summary_text(workout, tz) if finished else None,
+        "share": share_for(workout, tz) if finished else None,
         "current_exercise": session.current_exercise(),
         "latest": session.latest(),
         "suggestions": suggestions(session),

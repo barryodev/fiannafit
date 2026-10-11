@@ -1,7 +1,8 @@
+{% set mark = "*" if bold else "" %}
 🏋️ Fianna Fit workout, {{ when }}
 
 {% for exercise in workout.exercises %}
-*{{ exercise.name }}*
+{{ mark }}{{ exercise.name }}{{ mark }}
 {{ exercise.sets | map("set_text") | join(" · ") }}
 
 {% endfor %}

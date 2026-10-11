@@ -1,13 +1,14 @@
 """Share Workout in a real browser (DAI-9): the tap hands the summary to the
-share sheet. Neither test browser has a real share sheet, so navigator.share
-is replaced with one that records what it was given. What the page carries
-is tested in tests/test_share_button.py."""
+share sheet, or, without one, opens our dialog of other ways to send it.
+Neither test browser has a real share sheet, so navigator.share is replaced
+with one that records what it was given. What the page carries is tested in
+tests/test_share_button.py."""
 
 import re
 
 import pytest
 from helpers import htmx_done, log_set
-from playwright.sync_api import Page
+from playwright.sync_api import Browser, Page, expect
 
 # Stands in for the share sheet. window.shareFails makes it fail the way a
 # real one does, e.g. "AbortError" when the user closes it.
@@ -109,3 +110,115 @@ def test_other_share_failures_are_not_hidden(app: Page):
     with app.expect_event("pageerror") as error:
         share(app)
     assert "Share failed: NotAllowedError" in str(error.value)
+
+
+def test_with_a_share_sheet_the_dialog_stays_closed(app: Page):
+    finished_workout(app)
+    share(app)
+    shared(app)
+    expect(app.locator("#share-options")).not_to_be_visible()
+
+
+# --- Without a share sheet: the dialog -----------------------------------------
+
+# Most desktop browsers. The clipboard is faked as well: the test browsers'
+# real clipboards need permissions WebKit can't be given.
+NO_SHARE_SHEET = """
+Object.defineProperty(navigator, "share", { configurable: true, value: undefined });
+window.copied = [];
+Object.defineProperty(navigator, "clipboard", {
+  configurable: true,
+  value: { writeText: async (text) => { window.copied.push(text); } },
+});
+"""
+
+
+@pytest.fixture
+def no_sheet(page: Page) -> Page:
+    page.add_init_script(NO_SHARE_SHEET)
+    page.goto("/")
+    finished_workout(page)
+    return page
+
+
+def options(page: Page):
+    return page.locator("#share-options")
+
+
+def test_without_a_share_sheet_share_opens_the_dialog(no_sheet: Page):
+    # A phone in an in-app browser (Instagram, Facebook): SMS is offered
+    share(no_sheet)
+    expect(options(no_sheet)).to_be_visible()
+    expect(options(no_sheet).get_by_role("heading")).to_have_text("Share Workout")
+    expect(options(no_sheet).locator(".share-options .btn:visible")).to_have_text(
+        ["Copy to Clipboard", "WhatsApp", "Email", "SMS"]
+    )
+
+
+@pytest.fixture
+def desktop(browser: Browser, browser_context_args) -> Page:
+    """A desktop browser: a mouse, not a touch screen, and no share sheet."""
+    context = browser.new_context(
+        **browser_context_args | {"is_mobile": False, "has_touch": False}
+    )
+    page = context.new_page()
+    page.add_init_script(NO_SHARE_SHEET)
+    page.goto("/")
+    finished_workout(page)
+    yield page
+    context.close()
+
+
+def test_on_a_desktop_the_dialog_leaves_out_sms(desktop: Page):
+    # sms: links do nothing there
+    share(desktop)
+    expect(options(desktop).locator(".share-options .btn:visible")).to_have_text(
+        ["Copy to Clipboard", "WhatsApp", "Email"]
+    )
+
+
+def test_copy_puts_the_summary_on_the_clipboard(no_sheet: Page):
+    summary = no_sheet.locator("#log-panel").get_attribute("data-summary")
+    share(no_sheet)
+    copy = options(no_sheet).locator("[data-copy]")  # its name changes
+    copy.click()
+
+    expect(copy).to_have_text("Copied")
+    assert no_sheet.evaluate("window.copied") == [summary]
+    assert "*Bench Press*\n8 × 60 kg · 6 × 62.5 kg" in summary
+    expect(options(no_sheet)).to_be_visible()  # stays open
+    # Back to its label after a moment, even when tapped twice
+    copy.click()
+    expect(copy).to_have_text("Copy to Clipboard", timeout=5000)
+    assert len(no_sheet.evaluate("window.copied")) == 2
+
+
+def test_links_carry_the_summary(no_sheet: Page):
+    summary = no_sheet.locator("#log-panel").get_attribute("data-summary")
+    share(no_sheet)
+    whatsapp = options(no_sheet).get_by_role("link", name="WhatsApp")
+    expect(whatsapp).to_have_attribute(
+        "href", re.compile(r"^https://api\.whatsapp\.com/send\?text=")
+    )
+    # Decoded by the browser itself, as the app it opens would
+    sent = whatsapp.evaluate("a => new URL(a.href).searchParams.get('text')")
+    assert sent == summary
+
+
+def test_close_closes_the_dialog(no_sheet: Page):
+    share(no_sheet)
+    options(no_sheet).get_by_role("button", name="Close").click()
+    expect(options(no_sheet)).not_to_be_visible()
+
+
+def test_tapping_the_backdrop_closes_the_dialog(no_sheet: Page):
+    share(no_sheet)
+    expect(options(no_sheet)).to_be_visible()
+    no_sheet.mouse.click(5, 5)  # outside the dialog, on the dimmed backdrop
+    expect(options(no_sheet)).not_to_be_visible()
+
+
+def test_tapping_inside_the_dialog_keeps_it_open(no_sheet: Page):
+    share(no_sheet)
+    options(no_sheet).get_by_role("heading").click()
+    expect(options(no_sheet)).to_be_visible()
