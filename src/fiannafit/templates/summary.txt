@@ -1,0 +1,8 @@
+🏋️ Fianna Fit workout, {{ when }}
+
+{% for exercise in workout.exercises %}
+*{{ exercise.name }}*
+{{ exercise.sets | map("set_text") | join(" · ") }}
+
+{% endfor %}
+Logged with fiannafit.barryodev.io
