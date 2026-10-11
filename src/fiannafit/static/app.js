@@ -77,3 +77,15 @@ confirmDialog.addEventListener("close", () => {
 confirmDialog.addEventListener("click", (event) => {
   if (event.target === confirmDialog) confirmDialog.close();
 });
+
+// Share Workout opens the phone's share sheet with the summary (DAI-9).
+// Browsers only allow share() straight after a tap, so the text is already in
+// the page (data-share-text) rather than fetched here.
+document.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-share-text]");
+  if (!button || !navigator.share) return;
+  navigator.share({ text: button.dataset.shareText }).catch((error) => {
+    // Closing the sheet without picking anything isn't an error
+    if (error.name !== "AbortError") throw error;
+  });
+});

@@ -4,8 +4,9 @@
 {% if workout and workout.ended_at %}
 <div id="log-panel" class="log-panel log-panel-finished">
   {% include "_error_pill.html" %}
-  {# Placeholder until DAI-9 #}
-  <button type="button" class="btn btn-filled btn-block">Share Workout</button>
+  {# app.js opens the share sheet with data-share-text #}
+  <button type="button" class="btn btn-filled btn-block"
+          data-share-text="{{ summary }}">Share Workout</button>
 </div>
 {% else %}
 {% include "_log_form.html" %}

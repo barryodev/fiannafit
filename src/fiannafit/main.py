@@ -26,6 +26,7 @@ from fiannafit.session import (
     normalise_name,
     save_session,
 )
+from fiannafit.share import summary_text
 
 BASE_DIR = Path(__file__).parent
 
@@ -52,9 +53,14 @@ def screen_context(
     error: InvalidSet | None = None,
 ) -> dict:
     """What the templates need to draw the screen, or any part of it."""
+    workout = session.workout
+    tz = parse_timezone(request.cookies.get(TZ_COOKIE))
+    finished = workout is not None and workout.ended_at is not None
     return {
-        "workout": session.workout,
-        "tz": parse_timezone(request.cookies.get(TZ_COOKIE)),
+        "workout": workout,
+        "tz": tz,
+        # In the page before the tap: the share sheet only opens straight after one
+        "summary": summary_text(workout, tz) if finished else None,
         "current_exercise": session.current_exercise(),
         "latest": session.latest(),
         "suggestions": suggestions(session),
