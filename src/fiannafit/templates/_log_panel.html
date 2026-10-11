@@ -2,10 +2,27 @@
    workout is open, and just Share once it's finished. Same id either way, so
    every response swaps it the same way. #}
 {% if workout and workout.ended_at %}
-<div id="log-panel" class="log-panel log-panel-finished">
+{# The summary is in the page before the tap: browsers only open the share
+   sheet, or write to the clipboard, straight after one #}
+<div id="log-panel" class="log-panel log-panel-finished" data-summary="{{ share.text }}">
   {% include "_error_pill.html" %}
-  {# Placeholder until DAI-9 #}
-  <button type="button" class="btn btn-filled btn-block">Share Workout</button>
+  {# app.js opens the phone's share sheet, or #share-options if there isn't one #}
+  <button type="button" class="btn btn-filled btn-block" data-share>Share Workout</button>
+  <dialog id="share-options" class="dialog" aria-labelledby="share-options-title">
+    <form method="dialog">
+      <h2 id="share-options-title">Share Workout</h2>
+      <div class="share-options">
+        <button type="button" class="btn btn-tonal" data-copy>Copy to Clipboard</button>
+        {% for link in share.links %}
+        <a class="btn btn-tonal{% if link.phone_only %} phone-only{% endif %}" href="{{ link.href }}"
+           {%- if link.new_tab %} target="_blank" rel="noopener"{% endif %}>{{ link.label }}</a>
+        {% endfor %}
+      </div>
+      <div class="dialog-actions">
+        <button value="close" class="btn btn-text">Close</button>
+      </div>
+    </form>
+  </dialog>
 </div>
 {% else %}
 {% include "_log_form.html" %}

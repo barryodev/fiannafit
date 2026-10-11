@@ -153,7 +153,8 @@ def test_set_refused_when_session_is_full(client, monkeypatch):
     r = log(client, "Squat", "5", "100")
     assert r.status_code == 422
     assert (
-        "This workout is too big to store any more sets. Share it to keep it." in r.text
+        "This workout is too big to store any more sets. "
+        "Finish and share it to keep it." in r.text
     )
     assert "set-cookie" not in r.headers
     assert client.cookies[COOKIE_NAME] == before

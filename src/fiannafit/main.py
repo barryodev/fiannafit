@@ -26,6 +26,7 @@ from fiannafit.session import (
     normalise_name,
     save_session,
 )
+from fiannafit.share import share_for
 
 BASE_DIR = Path(__file__).parent
 
@@ -52,9 +53,14 @@ def screen_context(
     error: InvalidSet | None = None,
 ) -> dict:
     """What the templates need to draw the screen, or any part of it."""
+    workout = session.workout
+    tz = parse_timezone(request.cookies.get(TZ_COOKIE))
+    finished = workout is not None and workout.ended_at is not None
     return {
-        "workout": session.workout,
-        "tz": parse_timezone(request.cookies.get(TZ_COOKIE)),
+        "workout": workout,
+        "tz": tz,
+        # In the page before the tap: the share sheet only opens straight after one
+        "share": share_for(workout, tz) if finished else None,
         "current_exercise": session.current_exercise(),
         "latest": session.latest(),
         "suggestions": suggestions(session),
@@ -121,8 +127,11 @@ def log_set(
             status_code=422,
         )
     except SessionFull:
+        # There's always room left to finish and share (ROOM_TO_FINISH_BYTES)
         error = InvalidSet(
-            "This workout is too big to store any more sets. Share it to keep it.", ""
+            "This workout is too big to store any more sets. "
+            "Finish and share it to keep it.",
+            "",
         )
     # Nothing was saved: redraw the form from the stored session, keeping what
     # was typed so it doesn't have to be entered again.
@@ -179,22 +188,27 @@ def finish(request: Request):
     session = load_session(request)
     if session.workout is None:
         return screen_update(request, session, changed=False)
-    session.finish()
+    session.finish()  # always fits: see ROOM_TO_FINISH_BYTES
+    return screen_update(request, session)
+
+
+@app.post("/shared", response_class=HTMLResponse)
+def shared(request: Request):
+    """Note that the workout was shared, from the share sheet, Copy or a link in
+    the Share dialog (DAI-9), so New Workout stops warning that it hasn't been.
+    Returns just the top bar: the Share dialog in the log panel may be open."""
+    session = load_session(request)
+    changed = True
     try:
-        return screen_update(request, session)
-    except SessionFull:
-        # Only possible right at the size limit: the end time needs a few bytes
-        error = InvalidSet(
-            "This workout is too big to store, so it can't be finished. "
-            "Share it to keep it.",
-            "",
-        )
-        return templates.TemplateResponse(
-            request,
-            "_log_response.html",
-            screen_context(request, load_session(request), error=error),
-            status_code=422,
-        )
+        session.mark_shared()  # always fits: see ROOM_TO_FINISH_BYTES
+    except ValueError:
+        changed = False  # sent from a page that's out of date: no finished workout
+    response = templates.TemplateResponse(
+        request, "_top_bar.html", screen_context(request, session)
+    )
+    if changed:
+        save_session(request, response, session)
+    return response
 
 
 @app.post("/new-workout", response_class=HTMLResponse)

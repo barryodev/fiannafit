@@ -426,7 +426,7 @@ p {
   font-weight: 500;
 }
 
-/* --- Confirm dialog (Finish, New Workout) ---------------------------------- */
+/* --- Dialogs: confirm (Finish, New Workout) and Share ---------------------- */
 
 /* M3's basic dialog, in the panel's colour. No padding on the dialog itself:
    app.js treats a click on it as a tap on the backdrop. */
@@ -463,6 +463,27 @@ p {
   justify-content: flex-end;
   gap: 8px;
   margin-top: 8px;
+}
+
+/* Share Workout's ways to send, without a share sheet (DAI-9): one per row,
+   full width. The links are styled as buttons. */
+.share-options {
+  display: grid;
+  gap: 8px;
+}
+
+.share-options .btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+/* SMS does nothing on a desktop, so hide it where the main pointer is a mouse */
+@media (hover: hover) and (pointer: fine) {
+  .share-options .phone-only {
+    display: none;
+  }
 }
 
 /* --- Finished: the panel only holds Share ---------------------------------- */

@@ -195,15 +195,21 @@ def test_finishing_twice_keeps_the_first_end_time(client):
     assert saved(r).workout.ended_at == T0 + timedelta(minutes=60)
 
 
-def test_finish_refused_when_session_is_full(client, monkeypatch):
+def test_a_workout_too_big_for_another_set_can_still_be_finished_and_shared(
+    client, monkeypatch
+):
     start(client, ("Squat", 5, 100))
     before = client.cookies[COOKIE_NAME]
-    # The end time won't fit under a limit just above the current size
-    monkeypatch.setattr(session_module, "MAX_COOKIE_BYTES", len(before) + 5)
-    r = client.post("/finish")
-    assert r.status_code == 422
-    assert "This workout is too big to store, so it can&#39;t be finished." in r.text
-    assert "set-cookie" not in r.headers
+    # Only the room kept for finishing is left, so another set won't fit
+    monkeypatch.setattr(
+        session_module,
+        "MAX_COOKIE_BYTES",
+        len(before) + session_module.ROOM_TO_FINISH_BYTES,
+    )
+    r = client.post("/sets", data={"exercise": "Squat", "reps": "5", "kg": "100"})
+    assert "too big to store any more sets" in r.text
+    assert saved(client.post("/finish")).workout.ended_at is not None
+    assert saved(client.post("/shared")).workout.shared_at is not None
 
 
 def test_a_set_sent_to_a_finished_workout_brings_the_page_up_to_date(client):
@@ -248,6 +254,53 @@ def test_new_workout_asks_first_and_warns_it_is_unshared(client):
     assert 'hx-confirm="Start a New Workout?"' in button
     assert "This workout hasn't been shared. Starting a new one deletes it." in button
     assert 'data-confirm-action="Delete and Start New"' in button
+
+
+def new_workout_button(html):
+    return re.search(r'<button[^>]*hx-post="/new-workout"[^>]*>', html).group(0)
+
+
+def test_shared_notes_the_share_and_softens_the_question(client):
+    start(client, ("Squat", 5, 100), finished=True)
+    r = client.post("/shared")
+    assert r.status_code == 200
+    assert saved(r).workout.shared_at is not None
+    # Just the top bar: the Share dialog in the log panel may be open
+    assert r.text.strip().startswith('<header id="top-bar"')
+    assert 'id="log-panel"' not in r.text
+    assert "hx-swap-oob" not in r.text
+    # Still asks, as the button is easy to hit while scrolling to the top
+    button = new_workout_button(r.text)
+    assert 'hx-confirm="Start a New Workout?"' in button
+    assert (
+        "You've shared this workout. Starting a new one clears it from here." in button
+    )
+    assert 'data-confirm-action="Start New"' in button
+    assert "hasn't been shared" not in button
+
+
+def test_page_remembers_the_workout_was_shared(client):
+    start(client, ("Squat", 5, 100), finished=True)
+    client.post("/shared")
+    button = new_workout_button(client.get("/").text)
+    assert 'data-confirm-action="Start New"' in button
+
+
+def test_sharing_again_keeps_the_first_time(client):
+    start(client, ("Squat", 5, 100), finished=True)
+    first = saved(client.post("/shared")).workout.shared_at
+    assert saved(client.post("/shared")).workout.shared_at == first
+
+
+@pytest.mark.parametrize("finished", [False, None])
+def test_shared_from_an_out_of_date_page_changes_nothing(client, finished):
+    # E.g. a tab still showing a workout that another tab has replaced
+    if finished is not None:
+        start(client, ("Squat", 5, 100), finished=finished)
+    r = client.post("/shared")
+    assert r.status_code == 200
+    assert "set-cookie" not in r.headers
+    assert r.text.strip().startswith('<header id="top-bar"')
 
 
 def test_new_workout_is_only_offered_once_finished(client):

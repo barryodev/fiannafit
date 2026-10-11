@@ -72,8 +72,63 @@ confirmDialog.addEventListener("close", () => {
   pendingRequest = null;
 });
 
-// A tap on the dimmed backdrop cancels. The dialog has no padding of its own,
-// so a click whose target is the dialog itself landed outside its content.
-confirmDialog.addEventListener("click", (event) => {
-  if (event.target === confirmDialog) confirmDialog.close();
+// A tap on the dimmed backdrop cancels any of our dialogs. A dialog has no
+// padding of its own, so a click whose target is the dialog itself landed
+// outside its content. On document, as the Share dialog is swapped in by HTMX.
+document.addEventListener("click", (event) => {
+  if (event.target.matches("dialog.dialog")) event.target.close();
+});
+
+// Share Workout opens the phone's share sheet with the summary (DAI-9).
+// Browsers only allow share() straight after a tap, so the text is already in
+// the page (data-summary) rather than fetched here. Most desktop browsers have
+// no share sheet, so they get our dialog of other ways to send it instead.
+function summaryFor(element) {
+  return element.closest("[data-summary]").dataset.summary;
+}
+
+// Once the summary has gone somewhere, tell the server, so New Workout stops
+// warning that the workout hasn't been shared. Only the top bar comes back, as
+// the Share dialog may still be open.
+function markShared() {
+  htmx
+    .ajax("POST", "/shared", { target: "#top-bar", swap: "outerHTML" })
+    // E.g. no signal in the gym. The warning stays, which is the safe side
+    .catch(() => {});
+}
+
+document.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-share]");
+  if (!button) return;
+  if (!navigator.share) {
+    document.getElementById("share-options").showModal();
+    return;
+  }
+  // Resolves once an app is picked, not when the message is sent, which is
+  // as much as a browser can tell us
+  navigator.share({ text: summaryFor(button) }).then(markShared, (error) => {
+    // Closing the sheet without picking anything isn't an error
+    if (error.name !== "AbortError") throw error;
+  });
+});
+
+// Copy to Clipboard says "Copied" on itself for a moment; the dialog stays open
+const COPIED_MS = 2000;
+document.addEventListener("click", async (event) => {
+  const button = event.target.closest("[data-copy]");
+  if (!button) return;
+  await navigator.clipboard.writeText(summaryFor(button));
+  markShared();
+  button.dataset.label ??= button.textContent;
+  button.textContent = "Copied";
+  clearTimeout(button.copiedTimer);
+  button.copiedTimer = setTimeout(
+    () => (button.textContent = button.dataset.label),
+    COPIED_MS,
+  );
+});
+
+// WhatsApp, Email and SMS in the Share dialog count as shared once tapped
+document.addEventListener("click", (event) => {
+  if (event.target.closest("#share-options a")) markShared();
 });
