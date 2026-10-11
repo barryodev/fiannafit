@@ -25,6 +25,21 @@ phone (same Wi-Fi). The workout cookie is Secure, so it needs HTTPS; the script 
 self-signed certificate on first run, kept in `~/.local/share/fiannafit-dev/`, outside the
 repo. The phone warns about it once per address: tap through to continue.
 
+### Away from home, over Tailscale
+
+```sh
+ops/remote-phone-test.sh
+```
+
+Serves the app on localhost and shares it on your tailnet with `tailscale serve`, which
+gives it a real HTTPS certificate for this machine's `*.ts.net` name (no warnings). Only
+devices signed into your tailnet can reach it; nothing is opened to the internet. It
+prints the address to open on the phone, and Ctrl+C stops both the app and the sharing.
+
+One-time setup: install Tailscale on the machine and the phone and sign both into the
+same account, enable HTTPS certificates at https://login.tailscale.com/admin/dns, and run
+`sudo tailscale set --operator=$USER` so the script can manage serve without sudo.
+
 ## Test
 
 ```sh
