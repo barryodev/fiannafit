@@ -18,6 +18,10 @@ COOKIE_NAME = "session"
 MAX_AGE_SECONDS = 90 * 24 * 60 * 60  # 90 days from the last write
 # Browsers drop cookies over ~4096 bytes (name + value + attributes)
 MAX_COOKIE_BYTES = 3800
+# Kept free while a workout is unfinished, for the end and share times (DAI-9),
+# so a workout too big for another set can still be finished and shared. They
+# add under 80 bytes even if they didn't compress at all.
+ROOM_TO_FINISH_BYTES = 100
 RECENT_EXERCISES_LIMIT = 10
 
 
@@ -35,7 +39,7 @@ class Exercise(BaseModel):
 class Workout(BaseModel):
     started_at: datetime
     ended_at: datetime | None = None
-    shared_at: datetime | None = None  # set by DAI-9
+    shared_at: datetime | None = None  # first shared, see mark_shared
     exercises: list[Exercise] = []
 
 
@@ -98,6 +102,14 @@ class Session(BaseModel):
             raise ValueError("no workout to finish")
         if self.workout.ended_at is None:
             self.workout.ended_at = now or datetime.now(UTC)
+
+    def mark_shared(self, now: datetime | None = None) -> None:
+        """Note that the finished workout was shared (DAI-9), so New Workout
+        stops warning that it hasn't been. Sharing again keeps the first time."""
+        if self.workout is None or self.workout.ended_at is None:
+            raise ValueError("only a finished workout can be shared")
+        if self.workout.shared_at is None:
+            self.workout.shared_at = now or datetime.now(UTC)
 
     def new_workout(self) -> None:
         """Drop the current workout. Recent exercise names are kept."""
@@ -167,8 +179,11 @@ def check_config() -> None:
 
 def encode(session: Session) -> str:
     token = _serializer().dumps(session.model_dump(mode="json"))
-    if len(token) > MAX_COOKIE_BYTES:
-        raise SessionFull(f"session is {len(token)} bytes, limit {MAX_COOKIE_BYTES}")
+    limit = MAX_COOKIE_BYTES
+    if session.workout is not None and session.workout.ended_at is None:
+        limit -= ROOM_TO_FINISH_BYTES
+    if len(token) > limit:
+        raise SessionFull(f"session is {len(token)} bytes, limit {limit}")
     return token
 
 

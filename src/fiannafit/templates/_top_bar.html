@@ -15,12 +15,19 @@
   </div>
   {# One workout-level button at a time: Finish, then New Workout #}
   {% if workout and workout.ended_at %}
-  {# Always warns for now: DAI-9 adds sharing, and stops the warning once shared #}
+  {# Warns until the workout is shared (DAI-9); still asks after, as the button
+     is easy to hit while scrolling to the top #}
   <button type="button" class="btn btn-tonal btn-small"
           hx-post="/new-workout" hx-target="#log-panel" hx-swap="outerHTML"
           hx-confirm="Start a New Workout?"
+          {% if workout.shared_at %}
+          data-confirm-body="You've shared this workout. Starting a new one clears it from here."
+          data-confirm-action="Start New"
+          {% else %}
           data-confirm-body="This workout hasn't been shared. Starting a new one deletes it."
-          data-confirm-action="Delete and Start New">New Workout</button>
+          data-confirm-action="Delete and Start New"
+          {% endif %}
+          >New Workout</button>
   {% elif workout %}
   <button type="button" class="btn btn-tonal btn-small"
           hx-post="/finish" hx-target="#log-panel" hx-swap="outerHTML"

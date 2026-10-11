@@ -87,6 +87,16 @@ function summaryFor(element) {
   return element.closest("[data-summary]").dataset.summary;
 }
 
+// Once the summary has gone somewhere, tell the server, so New Workout stops
+// warning that the workout hasn't been shared. Only the top bar comes back, as
+// the Share dialog may still be open.
+function markShared() {
+  htmx
+    .ajax("POST", "/shared", { target: "#top-bar", swap: "outerHTML" })
+    // E.g. no signal in the gym. The warning stays, which is the safe side
+    .catch(() => {});
+}
+
 document.addEventListener("click", (event) => {
   const button = event.target.closest("[data-share]");
   if (!button) return;
@@ -94,7 +104,9 @@ document.addEventListener("click", (event) => {
     document.getElementById("share-options").showModal();
     return;
   }
-  navigator.share({ text: summaryFor(button) }).catch((error) => {
+  // Resolves once an app is picked, not when the message is sent, which is
+  // as much as a browser can tell us
+  navigator.share({ text: summaryFor(button) }).then(markShared, (error) => {
     // Closing the sheet without picking anything isn't an error
     if (error.name !== "AbortError") throw error;
   });
@@ -106,6 +118,7 @@ document.addEventListener("click", async (event) => {
   const button = event.target.closest("[data-copy]");
   if (!button) return;
   await navigator.clipboard.writeText(summaryFor(button));
+  markShared();
   button.dataset.label ??= button.textContent;
   button.textContent = "Copied";
   clearTimeout(button.copiedTimer);
@@ -113,4 +126,9 @@ document.addEventListener("click", async (event) => {
     () => (button.textContent = button.dataset.label),
     COPIED_MS,
   );
+});
+
+// WhatsApp, Email and SMS in the Share dialog count as shared once tapped
+document.addEventListener("click", (event) => {
+  if (event.target.closest("#share-options a")) markShared();
 });

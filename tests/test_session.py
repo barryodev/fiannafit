@@ -6,8 +6,10 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from itsdangerous import URLSafeTimedSerializer
 
+from fiannafit import session as session_module
 from fiannafit.session import (
     MAX_COOKIE_BYTES,
+    ROOM_TO_FINISH_BYTES,
     Session,
     SessionFull,
     WorkoutFinished,
@@ -94,6 +96,39 @@ def test_size_guard_refuses_oversized_session():
     rng = random.Random(0)
     for _ in range(200):
         session.log_set(f"{rng.getrandbits(128):x}", 5, now=T0)
+    with pytest.raises(SessionFull):
+        encode(session)
+
+
+@pytest.mark.parametrize("seed", range(20))
+def test_a_workout_too_big_for_another_set_can_still_be_finished_and_shared(seed):
+    # Random names and times barely compress: the worst case for the room kept
+    rng = random.Random(seed)
+    session = Session()
+    while True:
+        logged_at = T0 + timedelta(seconds=rng.randrange(10**5), microseconds=1)
+        session.log_set(f"{rng.getrandbits(128):x}", 5, 100, now=logged_at)
+        try:
+            encode(session)
+        except SessionFull:
+            break
+    session.delete_last_set()  # as /sets keeps the stored session
+    session.finish(now=datetime(2026, 10, 6, 23, 59, 59, 999999, tzinfo=UTC))
+    session.mark_shared(now=datetime(2026, 10, 7, 0, 0, 0, 123456, tzinfo=UTC))
+    assert len(encode(session)) <= MAX_COOKIE_BYTES
+
+
+def test_only_an_unfinished_workout_keeps_room(monkeypatch):
+    session = Session()
+    session.log_set("Squat", 5, 100, now=T0)
+    unfinished = len(encode(session))
+    session.finish(now=T0 + timedelta(minutes=60))
+    finished = len(encode(session))
+    assert finished - ROOM_TO_FINISH_BYTES < unfinished < finished
+    # A limit both sizes are under, but the unfinished one without the room
+    monkeypatch.setattr(session_module, "MAX_COOKIE_BYTES", finished)
+    assert decode(encode(session)) == session
+    session.workout.ended_at = None
     with pytest.raises(SessionFull):
         encode(session)
 
@@ -196,6 +231,35 @@ def test_finished_workout_is_read_only():
     with pytest.raises(WorkoutFinished):
         session.delete_last_set()
     assert len(session.workout.exercises[0].sets) == 1
+
+
+def test_mark_shared_keeps_the_first_time():
+    session = Session()
+    session.log_set("Squat", 5, 100, now=T0)
+    session.finish(now=T0 + timedelta(minutes=60))
+    session.mark_shared(now=T0 + timedelta(minutes=61))
+    session.mark_shared(now=T0 + timedelta(minutes=70))  # shared again
+    assert session.workout.shared_at == T0 + timedelta(minutes=61)
+
+
+def test_only_a_finished_workout_can_be_marked_shared():
+    session = Session()
+    with pytest.raises(ValueError):
+        session.mark_shared()
+    session.log_set("Squat", 5, 100, now=T0)
+    with pytest.raises(ValueError):
+        session.mark_shared()
+    assert session.workout.shared_at is None
+
+
+def test_the_next_workout_starts_unshared():
+    session = Session()
+    session.log_set("Squat", 5, 100, now=T0)
+    session.finish(now=T0 + timedelta(minutes=60))
+    session.mark_shared(now=T0 + timedelta(minutes=61))
+    session.new_workout()
+    session.log_set("Squat", 5, 100, now=T0 + timedelta(days=2))
+    assert session.workout.shared_at is None
 
 
 def test_new_workout_after_finish_can_log_again():

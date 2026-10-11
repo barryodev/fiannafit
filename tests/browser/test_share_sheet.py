@@ -222,3 +222,89 @@ def test_tapping_inside_the_dialog_keeps_it_open(no_sheet: Page):
     share(no_sheet)
     options(no_sheet).get_by_role("heading").click()
     expect(options(no_sheet)).to_be_visible()
+
+
+# --- Once shared, New Workout stops warning ----------------------------------------
+
+
+def new_workout(page: Page):
+    return page.get_by_role("button", name="New Workout")
+
+
+def expect_unshared(page: Page) -> None:
+    expect(new_workout(page)).to_have_attribute(
+        "data-confirm-action", "Delete and Start New"
+    )
+
+
+def expect_shared(page: Page) -> None:
+    expect(new_workout(page)).to_have_attribute("data-confirm-action", "Start New")
+
+
+def test_after_sharing_new_workout_asks_without_the_warning(app: Page):
+    finished_workout(app)
+    expect_unshared(app)
+    with app.expect_response("**/shared"):
+        share(app)
+
+    new_workout(app).click()
+    confirm = app.locator("#confirm")
+    expect(confirm.locator("p")).to_have_text(
+        "You've shared this workout. Starting a new one clears it from here."
+    )
+    with htmx_done(app):
+        confirm.get_by_role("button", name="Start New").click()
+    expect(app.locator(".empty")).to_have_text(
+        "No workout yet. Log your first set to start."
+    )
+
+
+def test_shared_is_remembered_after_reopening_the_app(app: Page):
+    finished_workout(app)
+    with app.expect_response("**/shared"):
+        share(app)
+    app.reload()
+    expect_shared(app)
+
+
+def test_closing_the_share_sheet_keeps_the_warning(app: Page):
+    finished_workout(app)
+    app.evaluate("window.shareFails = 'AbortError'")
+    sent: list[str] = []
+    app.on("request", lambda request: sent.append(request.url))
+    share(app)
+    shared(app)
+    app.wait_for_timeout(300)  # time for a request that shouldn't be sent
+    assert not [url for url in sent if url.endswith("/shared")]
+    expect_unshared(app)
+
+
+def test_if_the_share_isnt_noted_the_warning_stays(app: Page, page_errors):
+    # E.g. no signal in the gym: the share sheet works, the request doesn't
+    finished_workout(app)
+    app.route("**/shared", lambda route: route.abort())
+    with app.expect_event("requestfailed"):
+        share(app)
+    app.wait_for_timeout(200)
+    expect_unshared(app)
+    assert page_errors == []
+
+
+def test_copy_counts_as_shared(no_sheet: Page):
+    share(no_sheet)
+    with no_sheet.expect_response("**/shared"):
+        options(no_sheet).locator("[data-copy]").click()
+    expect_shared(no_sheet)
+    expect(options(no_sheet)).to_be_visible()  # the top bar changed, not the panel
+
+
+@pytest.mark.parametrize("label", ["WhatsApp", "Email", "SMS"])
+def test_tapping_a_link_counts_as_shared(no_sheet: Page, label: str):
+    # Stay on the page: the test can't follow it to WhatsApp or a mail app
+    no_sheet.evaluate(
+        "window.addEventListener('click', (event) => event.preventDefault())"
+    )
+    share(no_sheet)
+    with no_sheet.expect_response("**/shared"):
+        options(no_sheet).get_by_role("link", name=label).click()
+    expect_shared(no_sheet)
