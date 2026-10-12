@@ -6,9 +6,9 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from fastapi.testclient import TestClient
 
-from fiannafit import session as session_module
-from fiannafit.main import app
-from fiannafit.session import COOKIE_NAME, Session, decode, encode
+from taprep import session as session_module
+from taprep.main import app
+from taprep.session import COOKIE_NAME, Session, decode, encode
 
 T0 = datetime(2026, 10, 5, 17, 2, tzinfo=UTC)
 

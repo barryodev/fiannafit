@@ -45,4 +45,4 @@ cat <<EOF
 EOF
 
 cd "$REPO_DIR"
-uv run --env-file .env uvicorn fiannafit.main:app --reload --host 127.0.0.1 --port "$PORT"
+uv run --env-file .env uvicorn taprep.main:app --reload --host 127.0.0.1 --port "$PORT"

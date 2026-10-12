@@ -67,7 +67,7 @@ def test_share_hands_the_summary_to_the_share_sheet(app: Page):
 
     [sent] = shared(app)
     assert re.fullmatch(
-        r"🏋️ Fianna Fit workout, \w{3} \d{1,2} \w{3}, "
+        r"🏋️ TapRep workout, \w{3} \d{1,2} \w{3}, "
         r"\d\d:\d\d–\d\d:\d\d \(\d+ min\)\n"
         r"\n"
         r"\*Bench Press\*\n"
@@ -76,7 +76,7 @@ def test_share_hands_the_summary_to_the_share_sheet(app: Page):
         r"\*Pull-up\*\n"
         r"10 reps\n"
         r"\n"
-        r"Logged with fiannafit\.barryodev\.io",
+        r"Logged with taprep\.barryodev\.io",
         sent["text"],
     ), sent["text"]
 

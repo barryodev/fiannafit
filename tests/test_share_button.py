@@ -10,8 +10,8 @@ from urllib.parse import quote
 import pytest
 from fastapi.testclient import TestClient
 
-from fiannafit.main import app
-from fiannafit.session import COOKIE_NAME, Session, encode
+from taprep.main import app
+from taprep.session import COOKIE_NAME, Session, encode
 
 T0 = datetime(2026, 9, 29, 17, 2, tzinfo=UTC)  # 18:02 in Dublin
 
@@ -47,12 +47,12 @@ def hrefs(page: str) -> list[str]:
 
 
 SUMMARY = (
-    "🏋️ Fianna Fit workout, Tue 29 Sep, 18:02–19:05 (1 h 3 min)\n"
+    "🏋️ TapRep workout, Tue 29 Sep, 18:02–19:05 (1 h 3 min)\n"
     "\n"
     "*Squat*\n"
     "5 × 100 kg\n"
     "\n"
-    "Logged with fiannafit.barryodev.io"
+    "Logged with taprep.barryodev.io"
 )
 
 
@@ -65,7 +65,7 @@ def test_finish_swaps_in_the_summary(client):
     start(client, ("Squat", 5, 100), finished=False)
     page = client.post("/finish").text
     # Finished now, so the end time and day are today's
-    assert share_text(page).startswith("🏋️ Fianna Fit workout, Tue 29 Sep, 18:02 – ")
+    assert share_text(page).startswith("🏋️ TapRep workout, Tue 29 Sep, 18:02 – ")
     assert "*Squat*\n5 × 100 kg" in share_text(page)
 
 
@@ -73,7 +73,7 @@ def test_summary_uses_the_browsers_time_zone(client):
     client.cookies.set("tz", "Asia/Tokyo")
     start(client, ("Squat", 5, 100))
     assert share_text(client.get("/").text).startswith(
-        "🏋️ Fianna Fit workout, Wed 30 Sep, 02:02–03:05 (1 h 3 min)"
+        "🏋️ TapRep workout, Wed 30 Sep, 02:02–03:05 (1 h 3 min)"
     )
 
 

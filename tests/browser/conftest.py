@@ -42,7 +42,7 @@ def tls_cert(tmp_path_factory) -> tuple[str, str]:
     subprocess.run(
         [
             "openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "1",
-            "-keyout", key, "-out", cert, "-subj", "/CN=fiannafit-test",
+            "-keyout", key, "-out", cert, "-subj", "/CN=taprep-test",
             "-addext", "subjectAltName=IP:127.0.0.1",
         ],
         check=True,
@@ -85,7 +85,7 @@ def base_url(tls_cert, tmp_path_factory):
     with log_path.open("w") as log:
         server = subprocess.Popen(
             [
-                sys.executable, "-m", "uvicorn", "fiannafit.main:app",
+                sys.executable, "-m", "uvicorn", "taprep.main:app",
                 "--host", "127.0.0.1", "--port", str(port),
                 "--ssl-keyfile", key, "--ssl-certfile", cert,
             ],

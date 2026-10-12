@@ -1,13 +1,13 @@
-# Fianna Fit ops runbook
+# TapRep ops runbook
 
-How to build a Fianna Fit server from scratch and deploy to it. Each step says where it happens: the OCI console, your machine, or the VM.
+How to build a TapRep server from scratch and deploy to it. Each step says where it happens: the OCI console, your machine, or the VM.
 
 There are two targets, and both are set up with the same `provision.sh` and `deploy.sh`:
 
 - **Production:** an Oracle Cloud (OCI) Always Free ARM64 VM.
 - **Local test VM:** a Multipass VM on your machine running the same Ubuntu release. Use it to test changes to `ops/` before they touch production, and to reproduce infrastructure problems. If a problem also happens locally, it's in our setup; if it doesn't, look at OCI.
 
-Design decisions behind this setup are in Linear (project "Fianna Fit", issues DAI-6, DAI-7 and DAI-10). In short: the cloud resources are created by hand in the OCI console, the server config lives in this folder, and two scripts apply it: `host/provision-host.sh` for what every app on the VM shares, then `provision.sh` for Fianna Fit itself. There's no Terraform and no Docker, and nothing gets hand-edited on the VM.
+Design decisions behind this setup are in Linear (project "TapRep", issues DAI-6, DAI-7 and DAI-10). In short: the cloud resources are created by hand in the OCI console, the server config lives in this folder, and two scripts apply it: `host/provision-host.sh` for what every app on the VM shares, then `provision.sh` for TapRep itself. There's no Terraform and no Docker, and nothing gets hand-edited on the VM.
 
 ## Files
 
@@ -19,11 +19,11 @@ Design decisions behind this setup are in Linear (project "Fianna Fit", issues D
 | `host/sshd-hardening.conf` | SSH settings: key-only login, no passwords, no root login |
 | `host/20auto-upgrades` | Turns on daily unattended security upgrades |
 | `provision.sh` | App setup that is safe to re-run. You run it on the VM over SSH |
-| `fiannafit.caddy` | Fianna Fit's Caddy site: HTTPS for `fiannafit.barryodev.io`, proxied to the app |
+| `taprep.caddy` | TapRep's Caddy site: HTTPS for `taprep.barryodev.io`, proxied to the app, plus a redirect from the old name `fiannafit.barryodev.io` |
 | `deploy.sh` | You run it locally to ship the latest `main` to a named target (`local`, `prod`) and check its health |
 | `local-phone-test.sh` | You run it locally to serve the app over HTTPS on your home network (self-signed cert, kept outside the repo), to try it on a phone |
 | `targets.env.example` | Template for `targets.env` (gitignored), which maps target names to SSH addresses |
-| `fiannafit.service` | systemd unit that runs uvicorn on `127.0.0.1:8000` as the `fiannafit` user |
+| `taprep.service` | systemd unit that runs uvicorn on `127.0.0.1:8000` as the `taprep` user |
 
 ## Server facts
 
@@ -32,7 +32,7 @@ These aren't secret, but they are specific to this host. Keep them here, not in 
 | | Production (OCI) | Local test VM |
 | --- | --- | --- |
 | Region / AD that worked | `eu-paris-1` / AD-1 | n/a |
-| Name | `barryodev-1` | `fiannafit-local` |
+| Name | `barryodev-1` | `taprep-local` |
 | Shape | `VM.Standard.A1.Flex` (ARM64), 1 OCPU / 6 GB | Multipass, x86_64, 1 CPU / 6 GB / 20 GB disk |
 | Ubuntu release | `Canonical-Ubuntu-26.04-aarch64-2026.08.17-0` | same release as production (26.04) |
 | IP | `PROD` in `ops/targets.env`, or the instance details page in the OCI console | `LOCAL` in `ops/targets.env`; changes on rebuild, see `multipass list` |
@@ -115,13 +115,15 @@ At name.com, open **barryodev.io → Manage DNS records** and add:
 
 | Type | Host | Answer | TTL |
 | --- | --- | --- | --- |
-| `A` | `fiannafit` | the VM's public IP | `300` |
+| `A` | `taprep` | the VM's public IP | `300` |
 
 The short TTL means a mistake is fixed within 5 minutes. Check it from your machine (it can take a few minutes to appear):
 
 ```sh
-dig +short fiannafit.barryodev.io      # expect the VM's public IP
+dig +short taprep.barryodev.io      # expect the VM's public IP
 ```
+
+Until DAI-30 removes it, the old `fiannafit` record stays too, pointing at the same IP, so the old name can redirect to the new one.
 
 Do this before D2, so Caddy can get the certificate as soon as it's set up. If DNS isn't ready yet, Caddy keeps retrying on its own, more slowly each time. Running D2 again, or `sudo systemctl reload caddy` on the VM, makes it try again straight away.
 
@@ -153,7 +155,7 @@ sudo snap install multipass
 Use the same Ubuntu release as production (the `26.04` below is an example):
 
 ```sh
-multipass launch 26.04 --name fiannafit-local --cpus 1 --memory 6G --disk 20G \
+multipass launch 26.04 --name taprep-local --cpus 1 --memory 6G --disk 20G \
   --cloud-init - <<EOF
 ssh_authorized_keys:
   - $(cat ~/.ssh/id_ed25519.pub)
@@ -165,7 +167,7 @@ The key is read from your machine when you run the command, so nothing host-spec
 ### C3. First SSH login
 
 ```sh
-multipass list                      # shows fiannafit-local's IPv4 address
+multipass list                      # shows taprep-local's IPv4 address
 ssh ubuntu@<local-vm-ip>
 ```
 
@@ -174,7 +176,7 @@ Log in over SSH, not with `multipass shell`, because `deploy.sh` will use SSH ex
 ### Rebuilding from scratch
 
 ```sh
-multipass delete --purge fiannafit-local
+multipass delete --purge taprep-local
 ```
 
 Then repeat C2. Rebuilding is the quickest way to check that the runbook and `provision.sh` still work on a fresh machine.
@@ -191,7 +193,7 @@ Keep these in mind before blaming our setup or OCI for a problem:
 
 - **CPU architecture:** local is x86_64 and production is ARM64. It rarely matters here, because uv installs the right Python build and wheels for each platform.
 - **Firewall:** OCI's Ubuntu images ship with restrictive iptables rules (all inbound traffic rejected except SSH), and the Multipass image has none. OCI also filters traffic with the security list (B5) before it reaches the VM. `host/provision-host.sh` adds the same 80/443 rules on both. On the local VM, installing `iptables-persistent` also removes `ufw`, which was installed but off.
-- **No public IP or DNS:** so Caddy can't get a Let's Encrypt certificate locally. Caddy still tries, and logs certificate errors for `fiannafit.barryodev.io` (`journalctl -u caddy`). That's expected and harmless: the local VM only checks that the Caddy config is valid and that Caddy runs and redirects, and the certificate is tested on production.
+- **No public IP or DNS:** so Caddy can't get a Let's Encrypt certificate locally. Caddy still tries, and logs certificate errors for `taprep.barryodev.io` (`journalctl -u caddy`). That's expected and harmless: the local VM only checks that the Caddy config is valid and that Caddy runs and redirects, and the certificate is tested on production.
 
 ---
 
@@ -199,14 +201,14 @@ Keep these in mind before blaming our setup or OCI for a problem:
 
 ### D1. Create the secrets file (VM, once, by hand)
 
-The app's secrets live in `/etc/fiannafit/env`: one `NAME=value` per line, loaded by systemd. The file is never committed. `provision.sh` refuses to run until it exists, and never creates or changes it.
+The app's secrets live in `/etc/taprep/env`: one `NAME=value` per line, loaded by systemd. The file is never committed. `provision.sh` refuses to run until it exists, and never creates or changes it.
 
 SSH to the VM and run:
 
 ```sh
-sudo install -d -m 0755 /etc/fiannafit
-sudo install -m 0600 -o root -g root /dev/null /etc/fiannafit/env
-echo "SESSION_SECRET_KEY=$(openssl rand -hex 32)" | sudo tee /etc/fiannafit/env >/dev/null
+sudo install -d -m 0755 /etc/taprep
+sudo install -m 0600 -o root -g root /dev/null /etc/taprep/env
+echo "SESSION_SECRET_KEY=$(openssl rand -hex 32)" | sudo tee /etc/taprep/env >/dev/null
 ```
 
 The first two lines create the folder and an empty file that only root can read. The third generates a random key and writes it to the file without printing it. The app doesn't use the key until Phase 1, but setting it now means this step is done once.
@@ -220,15 +222,15 @@ Each VM gets its own key. Never copy production's key to the local VM.
 Copy the `ops/` folder from your checkout to the VM, then run the two scripts there as root, host first:
 
 ```sh
-ssh ubuntu@<vm-ip> rm -rf fiannafit-ops
-scp -r ops ubuntu@<vm-ip>:fiannafit-ops
-ssh ubuntu@<vm-ip> sudo ./fiannafit-ops/host/provision-host.sh
-ssh ubuntu@<vm-ip> sudo ./fiannafit-ops/provision.sh
+ssh ubuntu@<vm-ip> rm -rf taprep-ops
+scp -r ops ubuntu@<vm-ip>:taprep-ops
+ssh ubuntu@<vm-ip> sudo ./taprep-ops/host/provision-host.sh
+ssh ubuntu@<vm-ip> sudo ./taprep-ops/provision.sh
 ```
 
 Then check that a **new** SSH login still works (`ssh ubuntu@<vm-ip> true`) before closing the session you kept open.
 
-The first line removes any copy left over from a previous run. Without it, `scp -r` would put the new copy *inside* the old one (`fiannafit-ops/ops/`, the same way `cp -r` does) and the old `provision.sh` would run.
+The first line removes any copy left over from a previous run. Without it, `scp -r` would put the new copy *inside* the old one (`taprep-ops/ops/`, the same way `cp -r` does) and the old `provision.sh` would run.
 
 This runs your local version of `ops/`, including uncommitted changes, so you can try changes on the local VM before merging. The app code is always cloned from `main` on GitHub.
 
@@ -240,21 +242,21 @@ This runs your local version of `ops/`, including uncommitted changes, so you ca
 5. turns on unattended security upgrades
 6. installs the main Caddyfile, after `caddy validate` accepts it, and reloads Caddy
 
-`provision.sh` sets up Fianna Fit:
+`provision.sh` sets up TapRep:
 1. checks the secrets file, and that the host script has run
 2. installs `git` and `curl`
-3. creates the `fiannafit` user
+3. creates the `taprep` user
 4. installs uv
-5. clones the repo to `/opt/fiannafit`, or pulls if it's already there
+5. clones the repo to `/opt/taprep`, or pulls if it's already there
 6. runs `uv sync`
 7. installs and enables the systemd service
-8. installs `fiannafit.caddy` into `/etc/caddy/sites/`, after `caddy validate` accepts it, and reloads Caddy
+8. installs `taprep.caddy` into `/etc/caddy/sites/`, after `caddy validate` accepts it, and reloads Caddy
 
-Neither script touches the other's files. A future app adds its own site file next to `fiannafit.caddy`, on its own localhost port.
+Neither script touches the other's files. A future app adds its own site file next to `taprep.caddy`, on its own localhost port.
 
 Every step checks the current state first, so re-running is safe. That's also how config changes are applied: edit `ops/`, then run D2 again. SSH and Caddy are only reloaded when their files have changed, and a config that fails its check is never put live.
 
-`provision.sh` enables the service but doesn't start it. D3 (`deploy.sh`) starts it. Until `deploy.sh` exists, start it by hand on the VM with `sudo systemctl restart fiannafit`.
+`provision.sh` enables the service but doesn't start it. D3 (`deploy.sh`) starts it. Until `deploy.sh` exists, start it by hand on the VM with `sudo systemctl restart taprep`.
 
 ### D3. Deploy (your machine)
 
@@ -274,7 +276,7 @@ ops/deploy.sh prod
 ```
 
 Over SSH, the script:
-1. pulls `main` in `/opt/fiannafit` and prints the commit it's now at
+1. pulls `main` in `/opt/taprep` and prints the commit it's now at
 2. runs `uv sync --frozen --no-dev`
 3. restarts the service
 4. polls `http://127.0.0.1:8000/healthz` on the VM for up to 10 seconds
@@ -292,24 +294,88 @@ curl -i http://127.0.0.1:8000/healthz     # expect 200 and {"status":"ok"}
 sudo reboot                                # then SSH back in and repeat the curl
 ```
 
-If something's wrong, `systemctl status fiannafit` and `journalctl -u fiannafit -n 50` show the service state and the app's logs.
+If something's wrong, `systemctl status taprep` and `journalctl -u taprep -n 50` show the service state and the app's logs.
 
 **Production only, from your machine** (needs B5, B6 and D2):
 
 ```sh
-curl -I http://fiannafit.barryodev.io                 # expect 308, Location: https://...
-curl -i https://fiannafit.barryodev.io/healthz        # expect 200, no certificate error
+curl -I http://taprep.barryodev.io                    # expect 308, Location: https://...
+curl -i https://taprep.barryodev.io/healthz           # expect 200, no certificate error
+curl -I https://fiannafit.barryodev.io/healthz        # expect 301 to https://taprep.barryodev.io/healthz, until DAI-30
 curl -m 5 http://<public-ip>:8000/healthz             # expect a timeout or refusal, never a 200
 ssh -o PubkeyAuthentication=no -o PreferredAuthentications=password ubuntu@<public-ip>
                                                       # expect "Permission denied (publickey)"
 ```
 
-Then open `https://fiannafit.barryodev.io` in a browser and check the padlock. After a `sudo reboot`, all of these should still pass with nothing started by hand.
+Then open `https://taprep.barryodev.io` in a browser and check the padlock. After a `sudo reboot`, all of these should still pass with nothing started by hand.
 
 If HTTPS doesn't work, `journalctl -u caddy -n 50` on the VM shows why. The usual causes are DNS not pointing at the VM yet (B6), or port 80 or 443 blocked in the security list (B5) or iptables (`sudo iptables -L INPUT -n --line-numbers`). If the first attempt fails, Caddy retries against Let's Encrypt's staging server, so a broken setup doesn't use up Let's Encrypt's rate limits while you fix it.
 
 **Local VM:** the certificate can't work there (see *How the local VM differs from production*), but you can check that Caddy is running and redirects:
 
 ```sh
-curl -I -H 'Host: fiannafit.barryodev.io' http://<local-vm-ip>/   # expect 308 to https://
+curl -I -H 'Host: taprep.barryodev.io' http://<local-vm-ip>/   # expect 308 to https://
 ```
+
+---
+
+## E. Move a VM from the old name (once, DAI-26)
+
+The app was called Fianna Fit until DAI-26, and a VM set up before then has everything under `fiannafit`: the user, `/opt/fiannafit`, `/var/lib/fiannafit`, `/etc/fiannafit/env`, the systemd unit and the Caddy site. These steps set up the `taprep` names next to the old ones, switch over, then remove the old ones. Do it on the local VM first, then on production.
+
+**Before you start:**
+
+- The rename is merged to `main`, because `provision.sh` and `deploy.sh` only use `main` from GitHub.
+- The GitHub repo is renamed to `barryodev/taprep`. `provision.sh` clones from that URL, and GitHub doesn't redirect a new name to an old one.
+- **Production only:** `dig +short taprep.barryodev.io` returns the VM's IP (B6).
+- Pick a time when nobody is mid-workout. The app is down from E2 until E4, usually a minute or two, and everyone's current workout is lost anyway: the cookie belongs to the old domain, and its signing salt changed.
+
+### E1. New secrets file (VM)
+
+Run D1 as written. It creates `/etc/taprep/env` with a new key. The old key isn't needed: no old cookie is valid after the rename.
+
+### E2. Stop the old app (VM)
+
+```sh
+sudo systemctl disable --now fiannafit
+sudo rm /etc/caddy/sites/fiannafit.caddy
+```
+
+The first line stops the old service and stops it starting on boot. It has to stop before the new one starts, because both listen on port 8000. The site file has to go before E3, because the new site file also answers for `fiannafit.barryodev.io` (the redirect), and Caddy refuses to load two sites with the same name. The site is down from here until E4.
+
+### E3. Provision and deploy (your machine → VM)
+
+Run D2 as written, then D3. `provision.sh` creates the `taprep` user, clones the repo to `/opt/taprep`, installs `taprep.service` and `taprep.caddy`, and reloads Caddy. `deploy.sh` starts the app and checks its health.
+
+### E4. Verify
+
+Run D4. On production, also open `https://fiannafit.barryodev.io` in a browser: it should land on `https://taprep.barryodev.io`. Caddy needs a few seconds after the reload to get the new certificate.
+
+If something is wrong and you need the old app back, the old service and its files are still there until E5:
+
+```sh
+sudo systemctl disable --now taprep
+sudo rm /etc/caddy/sites/taprep.caddy
+sudo cp /opt/fiannafit/ops/fiannafit.caddy /etc/caddy/sites/
+sudo systemctl reload caddy
+sudo systemctl enable --now fiannafit
+```
+
+### E5. Remove the old names (VM, destructive)
+
+Only once E4 passes. This can't be undone, but everything it removes is either in Git or replaced by the `taprep` copy:
+
+```sh
+sudo rm /etc/systemd/system/fiannafit.service
+sudo systemctl daemon-reload
+sudo userdel --remove fiannafit          # also removes its home, /var/lib/fiannafit
+sudo rm -rf /opt/fiannafit /etc/fiannafit
+rm -rf ~/fiannafit-ops                   # as ubuntu: the old copy of ops/ from D2
+```
+
+Then check nothing is left: `ls -d /opt/fiannafit /var/lib/fiannafit /etc/fiannafit ~/fiannafit-ops` should report that none of them exist, and `id fiannafit` should say there's no such user.
+
+### E6. Afterwards
+
+- **Production:** set DAI-30's due date to one month from today. That's when the redirect and the old DNS record go.
+- **Local VM:** the Multipass VM keeps its old name, `fiannafit-local`. That's harmless. Next time you rebuild it, use the new name from C2.

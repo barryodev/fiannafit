@@ -3,8 +3,8 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from fiannafit.main import app
-from fiannafit.session import COOKIE_NAME, decode
+from taprep.main import app
+from taprep.session import COOKIE_NAME, decode
 
 
 @pytest.fixture

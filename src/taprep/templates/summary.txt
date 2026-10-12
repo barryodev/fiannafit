@@ -1,9 +1,9 @@
 {% set mark = "*" if bold else "" %}
-🏋️ Fianna Fit workout, {{ when }}
+🏋️ TapRep workout, {{ when }}
 
 {% for exercise in workout.exercises %}
 {{ mark }}{{ exercise.name }}{{ mark }}
 {{ exercise.sets | map("set_text") | join(" · ") }}
 
 {% endfor %}
-Logged with fiannafit.barryodev.io
+Logged with taprep.barryodev.io

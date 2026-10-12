@@ -5,9 +5,9 @@
 # Safe to re-run: every step checks before it changes anything. Run on the VM
 # as root, from a copy of the ops/ folder (see ops/README.md, step D2):
 #
-#   sudo ./fiannafit-ops/host/provision-host.sh
+#   sudo ./taprep-ops/host/provision-host.sh
 #
-# This folder holds nothing Fianna Fit specific, so it can move to its own
+# This folder holds nothing TapRep specific, so it can move to its own
 # host-config repo once a second app arrives.
 set -euo pipefail
 
@@ -118,4 +118,4 @@ else
 fi
 systemctl enable caddy
 
-log "Host done. Next: sudo ./fiannafit-ops/provision.sh"
+log "Host done. Next: sudo ./taprep-ops/provision.sh"

@@ -7,8 +7,8 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from fiannafit.session import Session
-from fiannafit.share import share_links, summary_text, when
+from taprep.session import Session
+from taprep.share import share_links, summary_text, when
 
 DUBLIN = ZoneInfo("Europe/Dublin")
 T0 = datetime(2026, 9, 29, 17, 2, tzinfo=UTC)  # 18:02 in Dublin (summer time)
@@ -34,7 +34,7 @@ def test_typical_workout():
         finished_after=timedelta(minutes=63),
     )
     assert summary_text(w, DUBLIN) == (
-        "🏋️ Fianna Fit workout, Tue 29 Sep, 18:02–19:05 (1 h 3 min)\n"
+        "🏋️ TapRep workout, Tue 29 Sep, 18:02–19:05 (1 h 3 min)\n"
         "\n"
         "*Barbell Bench Press*\n"
         "8 × 60 kg · 8 × 60 kg · 6 × 62.5 kg\n"
@@ -42,7 +42,7 @@ def test_typical_workout():
         "*Back Squat*\n"
         "5 × 100 kg · 5 × 100 kg · 5 × 100 kg\n"
         "\n"
-        "Logged with fiannafit.barryodev.io"
+        "Logged with taprep.barryodev.io"
     )
 
 
@@ -54,7 +54,7 @@ def test_bodyweight_sets_show_reps_only():
         ("Dip", 8, 10),  # weighted dip in the same exercise
     )
     assert summary_text(w, DUBLIN) == (
-        "🏋️ Fianna Fit workout, Tue 29 Sep, 18:02–18:22 (20 min)\n"
+        "🏋️ TapRep workout, Tue 29 Sep, 18:02–18:22 (20 min)\n"
         "\n"
         "*Pull-up*\n"
         "10 reps · 1 rep\n"
@@ -62,14 +62,14 @@ def test_bodyweight_sets_show_reps_only():
         "*Dip*\n"
         "12 reps · 8 × 10 kg\n"
         "\n"
-        "Logged with fiannafit.barryodev.io"
+        "Logged with taprep.barryodev.io"
     )
 
 
 def test_plain_version_has_no_bold_marks():
     w = workout(("Back Squat", 5, 100), ("Pull-up", 10, None))
     assert summary_text(w, DUBLIN, bold=False) == (
-        "🏋️ Fianna Fit workout, Tue 29 Sep, 18:02–18:22 (20 min)\n"
+        "🏋️ TapRep workout, Tue 29 Sep, 18:02–18:22 (20 min)\n"
         "\n"
         "Back Squat\n"
         "5 × 100 kg\n"
@@ -77,7 +77,7 @@ def test_plain_version_has_no_bold_marks():
         "Pull-up\n"
         "10 reps\n"
         "\n"
-        "Logged with fiannafit.barryodev.io"
+        "Logged with taprep.barryodev.io"
     )
 
 
@@ -165,12 +165,12 @@ def test_duration_across_a_clock_change_is_real_time():
 # --- Links for browsers without a share sheet ---------------------------------
 
 TEXT = (
-    "🏋️ Fianna Fit workout, Tue 29 Sep, 18:02–19:05 (1 h 3 min)\n"
+    "🏋️ TapRep workout, Tue 29 Sep, 18:02–19:05 (1 h 3 min)\n"
     "\n"
     "*Curl & Press #2 = 100%?*\n"
     "8 × 20 kg · 12 reps\n"
     "\n"
-    "Logged with fiannafit.barryodev.io"
+    "Logged with taprep.barryodev.io"
 )
 PLAIN_TEXT = TEXT.replace("*", "")
 
@@ -202,7 +202,7 @@ def test_email_link_has_a_subject_and_plain_text_with_crlf_line_breaks():
     email = link("Email")
     assert email.href.startswith("mailto:?subject=")
     assert params(email.href) == {
-        "subject": "🏋️ Fianna Fit workout, Tue 29 Sep, 18:02–19:05 (1 h 3 min)",
+        "subject": "🏋️ TapRep workout, Tue 29 Sep, 18:02–19:05 (1 h 3 min)",
         "body": PLAIN_TEXT.replace("\n", "\r\n"),
     }
     assert not email.new_tab

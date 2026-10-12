@@ -3,7 +3,7 @@
 from datetime import UTC, datetime, tzinfo
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from fiannafit.session import LoggedSet
+from taprep.session import LoggedSet
 
 # Set by a small script in base.html; the server itself runs in UTC.
 TZ_COOKIE = "tz"

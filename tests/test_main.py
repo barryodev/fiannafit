@@ -4,8 +4,8 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from fastapi.testclient import TestClient
 
-from fiannafit.main import app
-from fiannafit.session import COOKIE_NAME, Session, encode
+from taprep.main import app
+from taprep.session import COOKIE_NAME, Session, encode
 
 T0 = datetime(2026, 10, 5, 17, 2, tzinfo=UTC)  # 18:02 in Dublin (IST)
 

@@ -167,9 +167,9 @@ def _serializer() -> URLSafeTimedSerializer:
     if not key:
         raise RuntimeError(
             "SESSION_SECRET_KEY is not set. Locally, create .env from .env.example "
-            "(see README); on the VM it comes from /etc/fiannafit/env."
+            "(see README); on the VM it comes from /etc/taprep/env."
         )
-    return URLSafeTimedSerializer(key, salt="fiannafit.session")
+    return URLSafeTimedSerializer(key, salt="taprep.session")
 
 
 def check_config() -> None:

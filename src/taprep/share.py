@@ -8,8 +8,8 @@ from urllib.parse import quote
 
 from jinja2 import Environment, FileSystemLoader
 
-from fiannafit.display import clock, format_set
-from fiannafit.session import Workout
+from taprep.display import clock, format_set
+from taprep.session import Workout
 
 # Its own environment, not the page's: the summary is plain text, so nothing
 # is HTML-escaped here. The page escapes it once, where it embeds the text.

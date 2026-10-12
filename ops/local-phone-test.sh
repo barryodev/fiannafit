@@ -14,7 +14,7 @@
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-CERT_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/fiannafit-dev"
+CERT_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/taprep-dev"
 KEY="$CERT_DIR/key.pem"
 CERT="$CERT_DIR/cert.pem"
 PORT=8443
@@ -34,7 +34,7 @@ if [[ ! -f $KEY || ! -f $CERT ]] || ! openssl x509 -checkend 86400 -noout -in "$
   echo "==> Creating a self-signed certificate in $CERT_DIR (valid for a year)"
   mkdir -p "$CERT_DIR"
   openssl req -x509 -newkey rsa:2048 -nodes -days 365 \
-    -keyout "$KEY" -out "$CERT" -subj "/CN=fiannafit-dev" \
+    -keyout "$KEY" -out "$CERT" -subj "/CN=taprep-dev" \
     -addext "subjectAltName=IP:$IP,IP:127.0.0.1,DNS:localhost,DNS:$(hostname).local" \
     2>/dev/null
   chmod 600 "$KEY"
@@ -56,5 +56,5 @@ cat <<EOF
 EOF
 
 cd "$REPO_DIR"
-exec uv run --env-file .env uvicorn fiannafit.main:app --reload \
+exec uv run --env-file .env uvicorn taprep.main:app --reload \
   --host 0.0.0.0 --port "$PORT" --ssl-keyfile "$KEY" --ssl-certfile "$CERT"

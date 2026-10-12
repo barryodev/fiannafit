@@ -1,4 +1,4 @@
-# Fianna Fit
+# TapRep
 
 Low-friction workout logger. FastAPI + Jinja2 + HTMX, managed with [uv](https://docs.astral.sh/uv/).
 
@@ -7,7 +7,7 @@ Low-friction workout logger. FastAPI + Jinja2 + HTMX, managed with [uv](https://
 ```sh
 uv sync                                          # create .venv and install deps from uv.lock
 cp .env.example .env                             # once; then set SESSION_SECRET_KEY in it
-uv run --env-file .env uvicorn fiannafit.main:app --reload   # serve on http://127.0.0.1:8000
+uv run --env-file .env uvicorn taprep.main:app --reload   # serve on http://127.0.0.1:8000
 ```
 
 The app refuses to start without `SESSION_SECRET_KEY`, which signs the workout cookie.
@@ -22,7 +22,7 @@ ops/local-phone-test.sh
 
 Serves the app over HTTPS on your home network and prints the address to open on the
 phone (same Wi-Fi). The workout cookie is Secure, so it needs HTTPS; the script makes a
-self-signed certificate on first run, kept in `~/.local/share/fiannafit-dev/`, outside the
+self-signed certificate on first run, kept in `~/.local/share/taprep-dev/`, outside the
 repo. The phone warns about it once per address: tap through to continue.
 
 ### Away from home, over Tailscale
