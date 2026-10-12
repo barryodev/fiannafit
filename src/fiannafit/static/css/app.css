@@ -341,6 +341,58 @@ p {
   padding: 0 11px;
 }
 
+/* Clear Exercise (DAI-29): a red circle with a white ×, just right of the
+   field and centred on it. The button is a full 48px tap target; the circle is
+   smaller. */
+.clearable {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+}
+
+.clear-field {
+  width: 48px;
+  height: 56px; /* the field's height, so the circle lines up with its middle */
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.clear-field svg {
+  width: 30px;
+  height: 30px;
+}
+
+.clear-field circle {
+  fill: var(--md-sys-color-error);
+}
+
+.clear-field path {
+  stroke: var(--md-sys-color-on-error); /* 5.42:1 */
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
+.clear-field:active {
+  filter: brightness(1.15);
+}
+
+.clear-field:focus-visible {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: -2px;
+  border-radius: var(--md-sys-shape-corner-full);
+}
+
+/* Nothing to clear. Hidden but still taking its space, so the field doesn't
+   change width as the first letter is typed. */
+.clearable:has(input:placeholder-shown) .clear-field {
+  visibility: hidden;
+}
+
 /* --- Buttons -------------------------------------------------------------- */
 
 /* Labels are 19px bold, which counts as large text for contrast (WCAG),

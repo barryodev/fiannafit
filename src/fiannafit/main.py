@@ -81,9 +81,11 @@ def index(request: Request):
 def log_form(request: Request, exercise: str = ""):
     """The log form pre-filled with this exercise's last set. Tapping a card
     swaps in the whole form; typing a name swaps in just reps and kg. 204 (no
-    swap) if the exercise has no sets yet, so a new name keeps what's there."""
+    swap) if the exercise has no sets yet, so a new name keeps what's there,
+    or if the name is blank, e.g. just cleared, which also keeps them."""
     session = load_session(request)
-    form = prefill(session, normalise_name(exercise))
+    name = normalise_name(exercise)
+    form = prefill(session, name) if name else None
     if form is None:
         return Response(status_code=204)
     return templates.TemplateResponse(
