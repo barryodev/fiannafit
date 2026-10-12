@@ -35,6 +35,26 @@ document.addEventListener("input", (event) => {
   );
 });
 
+// Clear Exercise empties the name, reps and kg in one tap, ready for the next
+// exercise (DAI-29). Typing a logged name re-fills reps and kg as usual.
+// Pressing it mustn't take focus from the name field, or the phone's keyboard
+// drops and pops back up. The input event lets HTMX and the suggestions code
+// see the change.
+document.addEventListener("mousedown", (event) => {
+  if (event.target.closest("[data-clear-exercise]")) event.preventDefault();
+});
+
+document.addEventListener("click", (event) => {
+  if (!event.target.closest("[data-clear-exercise]")) return;
+  const form = document.getElementById("log-panel");
+  form.elements.reps.value = "";
+  form.elements.kg.value = "";
+  const field = form.elements.exercise;
+  field.value = "";
+  field.dispatchEvent(new Event("input", { bubbles: true }));
+  field.focus();
+});
+
 // After an Undo, the Undo button for the set now last arrives disabled
 // (data-cooldown), so the second tap of a double tap can't remove that set
 // too. Enable it once a double tap would be over.

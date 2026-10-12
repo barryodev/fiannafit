@@ -140,3 +140,96 @@ def test_suggestions_wait_until_typing_pauses(app: Page):
     expect(name).not_to_have_attribute("list", "exercise-suggestions")
 
     expect(name).to_have_attribute("list", "exercise-suggestions", timeout=1000)
+
+
+# --- Clear Exercise (DAI-29) -------------------------------------------------
+
+
+def test_clear_exercise_only_shows_while_the_field_has_text(app: Page):
+    name = app.get_by_label("Exercise")
+    clear = app.get_by_role("button", name="Clear")
+    expect(clear).to_be_hidden()
+
+    name.fill("Squat")
+    expect(clear).to_be_visible()
+
+    name.fill("")
+    expect(clear).to_be_hidden()
+
+
+def test_clear_exercise_sits_beside_the_field_and_lines_up_with_it(app: Page):
+    name = app.get_by_label("Exercise")
+    name.fill("Squat")
+    field = name.bounding_box()
+    circle = app.locator(".clear-field svg").bounding_box()
+
+    assert circle["x"] >= field["x"] + field["width"]  # outside the box
+    assert circle["width"] == circle["height"] == 30
+    field_middle = field["y"] + field["height"] / 2
+    assert abs(circle["y"] + circle["height"] / 2 - field_middle) <= 1
+
+
+def test_the_field_keeps_its_width_when_clear_exercise_appears(app: Page):
+    name = app.get_by_label("Exercise")
+    empty_width = name.bounding_box()["width"]
+
+    name.fill("Squat")
+
+    assert name.bounding_box()["width"] == empty_width
+
+
+def test_clear_exercise_empties_the_form_and_keeps_the_keyboard_up(app: Page):
+    log_set(app, "Squat", "5", "100")
+    name = app.get_by_label("Exercise")
+    name.focus()
+
+    with htmx_done(app, "htmx:afterRequest"):
+        app.get_by_role("button", name="Clear").tap()
+
+    expect(name).to_have_value("")
+    expect(name).to_be_focused()
+    # A new exercise won't have the same reps and kg. A blank name re-fills
+    # nothing, so they stay empty
+    expect(app.get_by_label("Reps")).to_have_value("")
+    expect(app.get_by_label("kg")).to_have_value("")
+    expect(app.get_by_role("button", name="Clear")).to_be_hidden()
+
+
+def test_clear_exercise_focuses_the_field_when_it_was_not_focused(app: Page):
+    log_set(app, "Squat", "5", "100")
+    name = app.get_by_label("Exercise")
+    expect(name).not_to_be_focused()
+
+    app.get_by_role("button", name="Clear").tap()
+
+    expect(name).to_have_value("")
+    expect(name).to_be_focused()
+
+
+def test_typing_the_cleared_name_again_still_refills(app: Page):
+    # HTMX only asks when the name has changed since it last asked, so it must
+    # see the clear, or retyping the same name would send nothing
+    log_set(app, "Squat", "5", "100")
+    log_set(app, "Bench Press", "8", "60")
+    name = app.get_by_label("Exercise")
+    with htmx_done(app, "htmx:afterRequest"):
+        name.fill("Squat")
+    expect(app.get_by_label("Reps")).to_have_value("5")
+
+    with htmx_done(app, "htmx:afterRequest"):
+        app.get_by_role("button", name="Clear").tap()
+    with htmx_done(app, "htmx:afterRequest"):
+        name.fill("Squat")
+
+    expect(app.get_by_label("Reps")).to_have_value("5")
+    expect(app.get_by_label("kg")).to_have_value("100")
+
+
+def test_clear_exercise_works_after_an_error_swaps_the_form(app: Page):
+    log_set(app, "Squat", "", "100")
+    expect(app.locator("#log-error")).to_be_visible()
+
+    app.get_by_role("button", name="Clear").tap()
+
+    expect(app.get_by_label("Exercise")).to_have_value("")
+    expect(app.get_by_label("kg")).to_have_value("")

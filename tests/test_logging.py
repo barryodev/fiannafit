@@ -227,6 +227,14 @@ def test_log_form_without_sets_to_repeat_changes_nothing(client):
     assert r.text == ""
 
 
+def test_log_form_with_a_blank_name_changes_nothing(client):
+    # E.g. the name was just cleared: reps and kg stay as they are
+    log(client, "Squat", "5", "100")
+    r = client.get("/log-form", params={"exercise": "  "})
+    assert r.status_code == 204
+    assert r.text == ""
+
+
 def test_log_form_does_not_change_the_cookie(client):
     log(client, "Squat", "5", "100")
     before = client.cookies[COOKIE_NAME]
