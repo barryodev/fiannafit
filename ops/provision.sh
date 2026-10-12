@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
-# App setup for Fianna Fit. Host-level setup (system updates, Caddy, firewall,
+# App setup for TapRep. Host-level setup (system updates, Caddy, firewall,
 # SSH) is in host/provision-host.sh, which must run first. Safe to re-run:
 # every step checks before it changes anything. Run on the VM as root, from a
 # copy of the ops/ folder (see ops/README.md, step D2):
 #
-#   sudo ./fiannafit-ops/provision.sh
+#   sudo ./taprep-ops/provision.sh
 #
 # Config files are installed from this script's own folder, not from the
 # repo clone, so local ops/ changes can be tested before they're merged.
 set -euo pipefail
 
-APP_USER=fiannafit
-APP_HOME=/var/lib/fiannafit     # home dir: uv and its Python live under here
-APP_DIR=/opt/fiannafit          # clone of the repo
-REPO_URL=https://github.com/barryodev/fiannafit.git
-ENV_FILE=/etc/fiannafit/env
+APP_USER=taprep
+APP_HOME=/var/lib/taprep        # home dir: uv and its Python live under here
+APP_DIR=/opt/taprep             # clone of the repo
+REPO_URL=https://github.com/barryodev/taprep.git
+ENV_FILE=/etc/taprep/env
 UV_VERSION=0.12.20              # keep in step with the uv used for development
 UV="$APP_HOME/.local/bin/uv"
 CADDY_SITES=/etc/caddy/sites     # created by host/provision-host.sh
@@ -76,23 +76,23 @@ log "Syncing Python environment"
 (cd "$APP_DIR" && as_app "$UV" sync --frozen --no-dev)
 
 # --- systemd service --------------------------------------------------------
-log "Installing fiannafit.service"
-install -m 0644 "$OPS_DIR/fiannafit.service" /etc/systemd/system/fiannafit.service
+log "Installing taprep.service"
+install -m 0644 "$OPS_DIR/taprep.service" /etc/systemd/system/taprep.service
 systemctl daemon-reload
-systemctl enable fiannafit
+systemctl enable taprep
 
 # --- Caddy site -------------------------------------------------------------
 # Only this app's own site file. The main Caddyfile belongs to the host.
-if ! out=$(caddy validate --adapter caddyfile --config "$OPS_DIR/fiannafit.caddy" 2>&1); then
+if ! out=$(caddy validate --adapter caddyfile --config "$OPS_DIR/taprep.caddy" 2>&1); then
   echo "$out" >&2
-  die "Caddy rejected ops/fiannafit.caddy, so it wasn't installed."
+  die "Caddy rejected ops/taprep.caddy, so it wasn't installed."
 fi
-if cmp -s "$OPS_DIR/fiannafit.caddy" "$CADDY_SITES/fiannafit.caddy"; then
+if cmp -s "$OPS_DIR/taprep.caddy" "$CADDY_SITES/taprep.caddy"; then
   log "Caddy site already installed"
 else
   log "Installing Caddy site, reloading Caddy"
-  install -m 0644 "$OPS_DIR/fiannafit.caddy" "$CADDY_SITES/fiannafit.caddy"
+  install -m 0644 "$OPS_DIR/taprep.caddy" "$CADDY_SITES/taprep.caddy"
   systemctl reload caddy
 fi
 
-log "Done. Start or restart the app with deploy.sh (or: sudo systemctl restart fiannafit)"
+log "Done. Start or restart the app with deploy.sh (or: sudo systemctl restart taprep)"

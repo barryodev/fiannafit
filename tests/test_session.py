@@ -6,8 +6,8 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from itsdangerous import URLSafeTimedSerializer
 
-from fiannafit import session as session_module
-from fiannafit.session import (
+from taprep import session as session_module
+from taprep.session import (
     MAX_COOKIE_BYTES,
     ROOM_TO_FINISH_BYTES,
     Session,
@@ -75,14 +75,14 @@ def test_garbage_is_invalid():
 
 
 def test_wrong_key_is_invalid():
-    other = URLSafeTimedSerializer("some-other-key", salt="fiannafit.session")
+    other = URLSafeTimedSerializer("some-other-key", salt="taprep.session")
     assert decode(other.dumps(Session().model_dump(mode="json"))) is None
 
 
 def test_unknown_version_is_invalid():
     token = encode(Session())
     data = decode(token).model_dump(mode="json") | {"v": 2}
-    serializer = URLSafeTimedSerializer("test-only-key", salt="fiannafit.session")
+    serializer = URLSafeTimedSerializer("test-only-key", salt="taprep.session")
     assert decode(serializer.dumps(data)) is None
 
 

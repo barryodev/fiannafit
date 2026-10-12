@@ -28,8 +28,8 @@ echo "==> Deploying main to $1 ($HOST)"
 # Everything between the EOFs runs on the VM as root. Paths match provision.sh.
 ssh "$HOST" sudo bash -s <<'EOF'
 set -euo pipefail
-as_app() { sudo -u fiannafit -H "$@"; }
-cd /opt/fiannafit
+as_app() { sudo -u taprep -H "$@"; }
+cd /opt/taprep
 
 echo "==> Pulling main"
 as_app git checkout -q main
@@ -37,10 +37,10 @@ as_app git pull -q --ff-only origin main
 echo "    now at $(as_app git log -1 --format='%h %s')"
 
 echo "==> Syncing Python environment"
-as_app /var/lib/fiannafit/.local/bin/uv sync -q --frozen --no-dev
+as_app /var/lib/taprep/.local/bin/uv sync -q --frozen --no-dev
 
-echo "==> Restarting fiannafit"
-systemctl restart fiannafit
+echo "==> Restarting taprep"
+systemctl restart taprep
 
 echo "==> Health check"
 for _ in $(seq 10); do
@@ -54,6 +54,6 @@ for _ in $(seq 10); do
 done
 
 echo "ERROR: /healthz didn't return 200 within 10 seconds. Recent logs:" >&2
-journalctl -u fiannafit -n 30 --no-pager >&2
+journalctl -u taprep -n 30 --no-pager >&2
 exit 1
 EOF

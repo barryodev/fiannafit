@@ -1,6 +1,6 @@
-# Fianna Fit
+# TapRep
 
-Low-friction workout logger. Project plan, phases and issues live in Linear (project "Fianna Fit", team DAI).
+Low-friction workout logger. Project plan, phases and issues live in Linear (project "TapRep", team DAI).
 
 ## Workflow rules
 - Never run `git commit`, `git push` or `git merge` unless the user explicitly says to in that message. Permission to commit, push or merge once does not carry over to later changes.

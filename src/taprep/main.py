@@ -8,9 +8,9 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from fiannafit import session as workout_session
-from fiannafit.display import TZ_COOKIE, clock, format_set, parse_timezone
-from fiannafit.forms import (
+from taprep import session as workout_session
+from taprep.display import TZ_COOKIE, clock, format_set, parse_timezone
+from taprep.forms import (
     FormValues,
     InvalidSet,
     parse_set,
@@ -18,7 +18,7 @@ from fiannafit.forms import (
     set_values,
     suggestions,
 )
-from fiannafit.session import (
+from taprep.session import (
     Session,
     SessionFull,
     WorkoutFinished,
@@ -26,7 +26,7 @@ from fiannafit.session import (
     normalise_name,
     save_session,
 )
-from fiannafit.share import share_for
+from taprep.share import share_for
 
 BASE_DIR = Path(__file__).parent
 

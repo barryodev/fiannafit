@@ -1,5 +1,5 @@
 [project]
-name = "fiannafit"
+name = "taprep"
 version = "0.1.0"
 description = "Low-friction workout logger"
 readme = "README.md"

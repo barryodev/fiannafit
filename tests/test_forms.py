@@ -4,8 +4,8 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from fiannafit.forms import FormValues, InvalidSet, parse_set, prefill, suggestions
-from fiannafit.session import Session
+from taprep.forms import FormValues, InvalidSet, parse_set, prefill, suggestions
+from taprep.session import Session
 
 T0 = datetime(2026, 10, 5, 17, 2, tzinfo=UTC)
 

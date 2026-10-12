@@ -3,8 +3,8 @@
 import re
 from dataclasses import dataclass
 
-from fiannafit.display import format_weight
-from fiannafit.session import LoggedSet, Session, normalise_name
+from taprep.display import format_weight
+from taprep.session import LoggedSet, Session, normalise_name
 
 MAX_NAME_LENGTH = 40
 MAX_REPS = 999

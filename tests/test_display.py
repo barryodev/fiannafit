@@ -5,8 +5,8 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from fiannafit.display import clock, format_set, format_weight, parse_timezone
-from fiannafit.session import LoggedSet
+from taprep.display import clock, format_set, format_weight, parse_timezone
+from taprep.session import LoggedSet
 
 T0 = datetime(2026, 10, 5, 17, 2, tzinfo=UTC)
 
