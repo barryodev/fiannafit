@@ -28,6 +28,7 @@ Low-friction workout logger. Project plan, phases and issues live in Linear (pro
 
 ## Testing
 - Tests are thorough and run every time. Never argue for fewer, weaker or opt-in tests because of runtime.
+- Thorough means every user-visible behaviour and every security property is covered once, at the right layer. Duplicate tests and tests of implementation details cost maintenance effort and can be cut.
 - No iPhone is available: phones are tested by hand on Android Chrome only, and iOS Safari only through Playwright WebKit. Flag iOS-specific risks, but don't hold up acceptance on untested Safari behaviour; Safari support isn't a current concern.
 
 ## Security
